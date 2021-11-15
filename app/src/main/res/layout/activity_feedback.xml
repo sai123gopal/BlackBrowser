@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activity.FeedbackActivity">
+<LinearLayout
+    android:layout_margin="20dp"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <ImageButton
+        android:id="@+id/close"
+        android:layout_gravity="end"
+        android:background="#00000000"
+        android:src="@drawable/icon_close"
+        android:layout_width="30dp"
+        android:layout_height="30dp">
+    </ImageButton>
+
+    <RadioGroup
+        android:id="@+id/feedback_type_group"
+        android:layout_marginBottom="20dp"
+        android:checkedButton="@id/suggestion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <RadioButton
+            android:id="@+id/suggestion"
+            android:text="Suggestion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+        </RadioButton>
+        <RadioButton
+            android:id="@+id/issue"
+            android:text="Issue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+        </RadioButton>
+        <RadioButton
+            android:id="@+id/bug"
+            android:text="Bug"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+        </RadioButton>
+        <RadioButton
+            android:id="@+id/other"
+            android:text="Other"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+        </RadioButton>
+    </RadioGroup>
+
+
+    <com.google.android.material.textfield.TextInputLayout
+        app:counterEnabled="true"
+        android:hint="Feedback"
+        app:counterMaxLength="1000"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:id="@+id/Feedback"
+            android:inputType="text"
+            android:singleLine="false"
+            android:maxLines="5"
+            android:layout_height="80dp">
+        </com.google.android.material.textfield.TextInputEditText>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/response_checkbox"
+        android:text="Need response from our team"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    </com.google.android.material.checkbox.MaterialCheckBox>
+
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:hint="Email"
+        android:id="@+id/email_input_layout"
+        android:enabled="false"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:id="@+id/email"
+            android:inputType="textEmailAddress"
+            android:layout_height="wrap_content">
+        </com.google.android.material.textfield.TextInputEditText>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/send_feedback"
+        android:layout_marginTop="20dp"
+        android:text="Send"
+        android:layout_gravity="center_horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    </com.google.android.material.button.MaterialButton>
+
+</LinearLayout>
+
+</ScrollView>

@@ -1,0 +1,34 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="sc_startPage"
+        android:enabled="true"
+        android:icon="@mipmap/qc_start"
+        android:shortcutShortLabel="@string/album_title_files"
+        android:shortcutLongLabel="@string/album_title_home"
+        android:shortcutDisabledMessage="@string/album_title_home">
+        <intent
+            android:action="sc_startPage"
+            android:targetPackage="com.saigopal.browser"
+            android:targetClass="com.saigopal.browser.activity.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="sc_bookmark"
+        android:enabled="true"
+        android:icon="@mipmap/qc_bookmarks"
+        android:shortcutShortLabel="@string/album_title_bookmarks"
+        android:shortcutLongLabel="@string/album_title_bookmarks"
+        android:shortcutDisabledMessage="@string/album_title_bookmarks">
+        <intent
+            android:action="sc_bookmark"
+            android:targetPackage="com.saigopal.browser"
+            android:targetClass="com.saigopal.browser.activity.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+
+</shortcuts>
+        
+

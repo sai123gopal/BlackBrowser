@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+    <title>New Tab</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
+          integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+
+</head>
+<style media="screen">
+    body {
+        background-color: black;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+        background-size: auto;
+    }
+
+    #share-buttons img {
+        width: 35px;
+        padding: 5px;
+        border: 0;
+        box-shadow: 0;
+        display: inline;
+    }
+
+    .center {
+        bottom: 20px;
+        width: 60%;
+        margin: 0;
+        position: absolute;
+        top: 90%;
+        left: 20%;
+        text-align: center;
+    }
+
+    .center .a {
+        width: 100%;
+        color: white;
+        border-radius: 64px;
+        padding: 10px;
+        text-align: center;
+    }
+
+    a {
+        font-family: 'Noto Sans JP', sans-serif;
+        margin-top: 500px;
+        vertical-align: center;
+        color: #ff793f;
+        align-self: baseline;
+        text-align: center;
+    }
+
+    h4 {
+        font-family: 'Noto Sans JP', sans-serif;
+        margin-top: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        color: #ff793f;
+        text-align: center;
+        text-align: center;
+    }
+
+    p {
+        margin-top: 50px;
+        font-family: 'Noto Sans JP', sans-serif;
+        margin-top: 30px;
+        color: azure;
+        margin: auto;
+        text-align: center;
+        font-size: 12px;
+        padding: 10px;
+        color: #ffffff;
+    }
+
+    input {
+        background-color: #444444;
+        padding : 10px;
+    }
+
+    img {
+        margin-top: 50px;
+        align-items: center;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    input[type=text] {
+        -webkit-border-radius: 20px;
+        -moz-border-radius: 20px;
+        align-items: center;
+        text-align: center;
+        border-radius: 20px;
+        color: #f7f7f4;
+        width: auto;
+        min-width: 200px;
+        height: 30px;
+        border: 1px solid #000000;
+        padding-left: 10px;
+        margin-top: 10px;
+    }
+
+    label {
+        color: #ff7a41;
+    }
+
+    input[type=text]:focus {
+        outline: none;
+        color: #ff7a41;
+        text-align: center;
+    }
+
+    .r {
+        width: 120px;
+        background-color: black;
+        color: #ff7a41;
+        border-radius: 0;
+        margin: 5px;
+        border-style: none;
+        border-color: black;
+        ;
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    }
+    .button {
+  background-color: #ff7a41; 
+  font-family: 'Noto Sans JP', sans-serif;
+  border: none;
+  color: white;
+  padding: 12px 15px;
+  text-align: center;
+  align-items: center;
+  display: inline-block;
+  border-radius: 10px;
+  font-size: 12px;
+}
+</style>
+
+<body bgcolor="black">
+
+
+<div>
+    <img src="0.png" width="100px" height="100px" alt="Icon"></img>
+
+    <h4 class="a">Black Browser</h4>
+
+</div>
+
+<center>
+
+    <form action="#">
+
+        <input id="search" type="text" placeholder="search or type web adress" onkeypress="handle(event)">
+
+    </form>
+
+
+</center>
+<div>
+    <p>
+        Simple, Lite weight, Fast, Free android web browser.
+    </p>
+</div>
+
+<div>
+   <!-- <p>
+        <button class="button" id="SignIn" onclick="go()">PROFILE</button>
+    </p>
+    -->
+    <p>
+        <button class="button" id="Feedback" onclick="feedback()">Send Feedback</button>
+    </p>
+</div>
+
+<footer>
+    <div>
+        <p align="center">
+
+        <div id="share-buttons" align="center">
+            <a href="mailto:developers.blackbrowser@gmail.com">
+                <img src="https://icon-library.com/images/red-email-icon-png/red-email-icon-png-27.jpg" alt="Email" />
+            </a>
+
+            <a href="https://t.me/blackbrowser" target="_blank">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/600px-Telegram_logo.svg.png" alt="Telegram" />
+            </a>
+
+            <a href="https://www.youtube.com/channel/UCvLJAVIXT_AVIj1gXq4P5xw" target="_blank">
+                <img src="https://www.youtube.com/about/static/svgs/icons/brand-resources/YouTube_icon_full-color.svg?cache=f2ec7a5" alt="Youtube" />
+            </a>
+
+            <a href="https://twitter.com/Black_Browser" target="_blank">
+                <img src="https://utilitypeopleuk.com/wp-content/uploads/2017/06/twitter-icon-circle-blue-logo-preview.png" alt="Twitter" />
+            </a>
+
+        </div>
+        <div align="center">
+            <a class="x" href="https://blackbrowser-androidapp.web.app/Termsandconditions.html"> Terms & Conditions</a>
+            <br>
+            <a class="x" href="https://blackbrowser-androidapp.web.app/privacypolicy.html">Privacy Policy</a>
+
+        </div>
+
+        </p>
+
+    </div>
+</footer>
+
+
+
+<script>
+        function handle(e) {
+            if (e.keyCode === 13) {
+                e.preventDefault(); // Ensure it is only this code that rusn
+
+                var Search = document.getElementById("search").value;
+                Android.Search(Search);
+            }
+        }
+        function go(){
+            Android.sign();
+        }
+        function feedback(){
+            Android.feedback();
+        }
+
+    </script>
+
+</body>
+
+
+
+</html>
