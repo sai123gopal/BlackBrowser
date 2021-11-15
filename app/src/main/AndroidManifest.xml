@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.saigopal.browser">
-    <!-- Permission -->
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -21,7 +21,6 @@
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
         tools:ignore="UnusedAttribute">
-        <!-- BrowserActivity -->
 
         <activity android:name=".activity.FeedbackActivity">
         </activity>
@@ -35,7 +34,8 @@
             android:label="@string/app_name"
             android:launchMode="singleTask"
             android:theme="@style/AppTheme"
-            android:windowSoftInputMode="adjustResize|stateAlwaysHidden">
+            android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
+            android:exported="false">
             <intent-filter android:icon="@mipmap/ic_launcher">
                 <action android:name="android.intent.action.SEND" />
 
@@ -71,7 +71,6 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
-        <!-- Settings -->
         <activity
             android:name=".activity.SettingsActivity"
             android:label="@string/setting_label"
@@ -117,7 +116,7 @@
         <activity
             android:name=".activity.SettingsFilterActivity"
             android:label="@string/setting_filter"
-            android:theme="@style/AppTheme" /> <!-- ClearService | Provider -->
+            android:theme="@style/AppTheme" />
         <service
             android:name=".service.ClearService"
             android:icon="@mipmap/ic_launcher"
