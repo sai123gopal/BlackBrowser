@@ -22,12 +22,14 @@
         android:requestLegacyExternalStorage="true"
         tools:ignore="UnusedAttribute">
 
-        <activity android:name=".activity.FeedbackActivity">
+        <activity
+            android:name=".activity.FeedbackActivity">
         </activity>
         <activity
             android:name=".activity.SignInActivity"
             android:theme="@style/AppTheme">
         </activity>
+
         <activity
             android:name=".activity.MainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
@@ -35,23 +37,23 @@
             android:launchMode="singleTask"
             android:theme="@style/AppTheme"
             android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
-            android:exported="false">
+            android:exported="true">
+
             <intent-filter android:icon="@mipmap/ic_launcher">
                 <action android:name="android.intent.action.SEND" />
-
                 <category android:name="android.intent.category.DEFAULT" />
-
                 <data android:mimeType="text/plain" />
             </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
             </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.WEB_SEARCH" />

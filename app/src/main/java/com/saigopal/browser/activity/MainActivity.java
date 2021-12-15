@@ -2359,7 +2359,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
                 sharedPreferences.getString("4_name","Amazon"),
                 sharedPreferences.getString("5_name","Wikipedia"),
                 sharedPreferences.getString("6_name","DuckDuckGo"),
-                sharedPreferences.getString("7_name","Flipkart")
+                sharedPreferences.getString("7_name","BlackBrowser")
         };
         public String[] web_url = {
                 sharedPreferences.getString("0_url","https://www.google.com/"),
@@ -2369,7 +2369,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
                 sharedPreferences.getString("4_url","https://www.amazon.com/"),
                 sharedPreferences.getString("5_url","https://www.wikipedia.org/"),
                 sharedPreferences.getString("6_url","https://www.duckduckgo.com"),
-                sharedPreferences.getString("7_url","https://www.flipkart.com/")
+                sharedPreferences.getString("7_url","https://blackbrowser-androidapp.web.app/")
         };
 
         @Override
