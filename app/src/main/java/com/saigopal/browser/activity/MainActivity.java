@@ -33,6 +33,10 @@ import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import androidx.annotation.NonNull;
+
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -274,10 +278,6 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         initOmnibox();
         initSearchPanel();
         initOverview();
-
-        //if (FirebaseAuth.getInstance().getCurrentUser() == null){
-        //    startActivity(new Intent(MainActivity.this,SignInActivity.class));
-       // }
 
         new AdBlock(context); // For AdBlock cold boot
         new Javascript(context);
