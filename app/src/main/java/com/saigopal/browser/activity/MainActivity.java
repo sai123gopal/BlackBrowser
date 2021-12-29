@@ -34,13 +34,9 @@ import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import androidx.annotation.NonNull;
 
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.auth.FirebaseAuth;
 import com.saigopal.browser.R;
 import com.saigopal.browser.browser.AdBlock;
 import com.saigopal.browser.browser.AlbumController;
@@ -2288,7 +2284,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    startActivity(new Intent(MainActivity.this, SignInActivity.class));
+                    //startActivity(new Intent(MainActivity.this, SignInActivity.class));
                 }
             });
         }

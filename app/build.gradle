@@ -16,8 +16,8 @@ android {
         applicationId "com.saigopal.browser"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 14
-        versionName "1.5.20"
+        versionCode 15
+        versionName "1.5.23"
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
     }
@@ -42,10 +42,9 @@ dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.4.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
-    implementation 'com.google.firebase:firebase-analytics:20.0.1'
+    implementation 'com.google.firebase:firebase-analytics:20.0.2'
     implementation 'com.google.firebase:firebase-crashlytics:18.2.6'
     implementation 'com.google.firebase:firebase-perf:20.0.4'
-    implementation 'com.google.firebase:firebase-auth:21.0.1'
     implementation 'com.google.firebase:firebase-storage:20.0.0'
     implementation 'com.google.firebase:firebase-database:20.0.3'
     testImplementation 'junit:junit:4.13.2'
@@ -62,7 +61,9 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads:20.5.0'
     //inmob ads
     implementation 'com.google.ads.mediation:inmobi:10.0.1.0'
-
+    //unity ads
+    implementation 'com.unity3d.ads:unity-ads:4.0.0'
+    implementation 'com.google.ads.mediation:unity:3.7.5.0'
 
 
     implementation 'com.squareup.picasso:picasso:2.71828'

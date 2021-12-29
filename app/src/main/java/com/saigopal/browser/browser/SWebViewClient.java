@@ -16,7 +16,6 @@ import androidx.annotation.NonNull;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.auth.FirebaseAuth;
 import com.saigopal.browser.R;
 import com.saigopal.browser.database.Record;
 import com.saigopal.browser.database.RecordAction;
@@ -26,7 +25,6 @@ import com.saigopal.browser.unit.RecordUnit;
 import com.saigopal.browser.view.Toasty;
 import com.saigopal.browser.view.SWebView;
 
-import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.HttpAuthHandler;
