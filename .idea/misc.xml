@@ -3,11 +3,14 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/android projects/bb/app/src/main/res/layout/activity_main.xml" value="0.15625" />
         <entry key="..\:/android projects/bb/app/src/main/res/layout/activity_settings.xml" value="0.152" />
         <entry key="..\:/android projects/bb/app/src/main/res/layout/activity_sign_in.xml" value="0.15625" />
         <entry key="..\:/android projects/bb/app/src/main/res/layout/dialog_edit_homescreen.xml" value="0.25" />
         <entry key="..\:/android projects/bb/app/src/main/res/layout/dialog_menu.xml" value="0.25" />
+        <entry key="..\:/android projects/bb/app/src/main/res/layout/dialog_overview.xml" value="0.14628623188405798" />
         <entry key="..\:/android projects/bb/app/src/main/res/xml/preference_setting.xml" value="0.12708333333333333" />
+        <entry key="..\:/android projects/bb/app/src/main/res/xml/preference_ui.xml" value="0.15625" />
       </map>
     </option>
   </component>

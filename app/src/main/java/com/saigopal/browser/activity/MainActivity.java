@@ -34,9 +34,13 @@ import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import androidx.annotation.NonNull;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.saigopal.browser.R;
 import com.saigopal.browser.browser.AdBlock;
 import com.saigopal.browser.browser.AlbumController;
@@ -214,6 +218,10 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
     private ValueCallback<Uri[]> mFilePathCallback;
 
+    //ads
+    private AdView mAdView;
+    private AdRequest adRequest;
+
     // Classes
 
     private class VideoCompletionListener implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
@@ -249,6 +257,8 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         setContentView(R.layout.activity_main);
 
         //  sp.edit().putString(getString(R.string.sp_search_engine), "0").apply();
+
+        MobileAds.initialize(this, initializationStatus -> { });
 
 
         if (Objects.requireNonNull(sp.getString("saved_key_ok", "no")).equals("no")) {
@@ -465,11 +475,17 @@ public class MainActivity extends AppCompatActivity implements BrowserController
     private void showOverview() {
         mBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
         bottomSheetDialog_OverView.show();
+        mAdView.loadAd(adRequest);
+        Bundle bundle = new Bundle();
+        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, "overview");
+        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "Main_Adview");
+        FirebaseAnalytics.getInstance(this).logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
     }
 
     public void hideOverview () {
         if (bottomSheetDialog_OverView != null) {
             bottomSheetDialog_OverView.cancel();
+            mAdView.destroy();
         }
     }
 
@@ -710,6 +726,10 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         open_bookmarkView = dialogView.findViewById(R.id.open_bookmarkView);
         open_historyView = dialogView.findViewById(R.id.open_historyView);
         open_tabView = dialogView.findViewById(R.id.open_tabView);
+
+        mAdView = dialogView.findViewById(R.id.adView);
+        adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
 
 
         home_gridView = dialogView.findViewById(R.id.grid_view);
@@ -1769,6 +1789,8 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         final View floatButton_shareView = view.findViewById(R.id.floatButton_shareView);
         final View floatButton_saveView = view.findViewById(R.id.floatButton_saveView);
         final View floatButton_moreView = view.findViewById(R.id.floatButton_moreView);
+
+
 
         int orientation = this.getResources().getConfiguration().orientation;
         int numberColumns;
