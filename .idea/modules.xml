@@ -2,8 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bb.iml" filepath="$PROJECT_DIR$/.idea/modules/bb.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/bb.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/bb.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/BlackBrowser.iml" filepath="$PROJECT_DIR$/.idea/modules/BlackBrowser.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/BlackBrowser.app.unitTest.iml" />
     </modules>
   </component>
 </project>
