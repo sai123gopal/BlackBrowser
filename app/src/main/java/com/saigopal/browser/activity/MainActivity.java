@@ -20,12 +20,9 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 
 import android.os.Handler;
@@ -52,7 +49,6 @@ import com.saigopal.browser.browser.Remote;
 import com.saigopal.browser.database.BookmarkList;
 import com.saigopal.browser.database.Record;
 import com.saigopal.browser.database.RecordAction;
-import com.saigopal.browser.fragment.FragmentSettingsData;
 import com.saigopal.browser.service.ClearService;
 import com.saigopal.browser.unit.BrowserUnit;
 import com.saigopal.browser.unit.HelperUnit;
@@ -67,14 +63,12 @@ import com.saigopal.browser.view.SwipeTouchListener;
 import com.squareup.picasso.Picasso;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -84,7 +78,6 @@ import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
@@ -104,22 +97,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
-import org.w3c.dom.Text;
-
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-
-
 import static android.content.ContentValues.TAG;
-import static com.saigopal.browser.unit.BrowserUnit.SEARCH_ENGINE_BAIDU;
-import static com.saigopal.browser.unit.BrowserUnit.SEARCH_ENGINE_BING;
-import static com.saigopal.browser.unit.BrowserUnit.SEARCH_ENGINE_DUCKDUCKGO;
-import static com.saigopal.browser.unit.BrowserUnit.SEARCH_ENGINE_GOOGLE;
-import static com.saigopal.browser.unit.BrowserUnit.SEARCH_ENGINE_QWANT;
-import static com.saigopal.browser.unit.BrowserUnit.SEARCH_ENGINE_SEARX;
+
 
 @SuppressWarnings({"ApplySharedPref"})
 public class MainActivity extends AppCompatActivity implements BrowserController {
@@ -188,13 +171,11 @@ public class MainActivity extends AppCompatActivity implements BrowserController
     private int TabCounter = 0;
 
     private GridView home_gridView ;
-   private CustomGridViewAdapter gridViewAdapter ;
 
     SharedPreferences sharedPreferences;
 
 
 
-    @RequiresApi(api = Build.VERSION_CODES.GINGERBREAD)
     private boolean prepareRecord() {
         SWebView webView = (SWebView) currentAlbumController;
         String title = webView.getTitle();
@@ -640,13 +621,10 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             }
         });
         updateAutoComplete();
-        omniboxOverview.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showOverview();
-                open_tab.performClick();
+        omniboxOverview.setOnClickListener(v -> {
+            showOverview();
+            open_tab.performClick();
 
-            }
         });
     }
 
@@ -734,26 +712,20 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
         home_gridView = dialogView.findViewById(R.id.grid_view);
 
-        gridViewAdapter = new CustomGridViewAdapter();
+        CustomGridViewAdapter gridViewAdapter = new CustomGridViewAdapter();
         home_gridView.setAdapter(gridViewAdapter);
 
-        home_gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String name = new CustomGridViewAdapter().web_name[position];
-                String url = new CustomGridViewAdapter().web_url[position];
+        home_gridView.setOnItemClickListener((parent, view, position, id) -> {
+            String name = new CustomGridViewAdapter().web_name[position];
+            String url = new CustomGridViewAdapter().web_url[position];
 
-                addAlbum(name,url,true);
-                hideOverview();
-            }
+            addAlbum(name,url,true);
+            hideOverview();
         });
 
-        home_gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                updateHomeGridView(position);
-                return true;
-            }
+        home_gridView.setOnItemLongClickListener((parent, view, position, id) -> {
+            updateHomeGridView(position);
+            return true;
         });
 
         // allow scrolling in listView without closing the bottomSheetDialog
@@ -1101,9 +1073,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             startActivity(intent);
         });
 
-        overViewNewTab.setOnClickListener(v -> {
-            OpenNewTab();
-        });
+        overViewNewTab.setOnClickListener(v -> OpenNewTab());
 
 
     }
@@ -1185,29 +1155,13 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
         final String url = sWebView.getUrl();
 
-        if (sp.getBoolean(getString(R.string.sp_javascript), true)){
-            sw_java.setChecked(true);
-        } else {
-            sw_java.setChecked(false);
-        }
+        sw_java.setChecked(sp.getBoolean(getString(R.string.sp_javascript), true));
 
-        if (sp.getBoolean(getString(R.string.sp_ad_block), true)){
-            sw_adBlock.setChecked(true);
-        } else {
-            sw_adBlock.setChecked(false);
-        }
+        sw_adBlock.setChecked(sp.getBoolean(getString(R.string.sp_ad_block), true));
 
-        if (sp.getBoolean(getString(R.string.sp_cookies), true)){
-            sw_cookie.setChecked(true);
-        } else {
-            sw_cookie.setChecked(false);
-        }
+        sw_cookie.setChecked(sp.getBoolean(getString(R.string.sp_cookies), true));
 
-        if (sp.getBoolean("sp_remote", true)){
-            switch_ext.setChecked(true);
-        } else {
-            switch_ext.setChecked(false);
-        }
+        switch_ext.setChecked(sp.getBoolean("sp_remote", true));
 
         if (javaHosts.isWhite(url)) {
             whiteList_js.setImageResource(R.drawable.check_green);
@@ -1486,7 +1440,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
     private void updateOmnibox() {
         if (sWebView == currentAlbumController) {
-            if (sWebView.getTitle().isEmpty()) {
+            if (Objects.requireNonNull(sWebView.getTitle()).isEmpty()) {
                 omniboxTitle.setText(sWebView.getUrl());
             } else {
                 omniboxTitle.setText(sWebView.getTitle());
@@ -1519,7 +1473,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             updateRefresh(false);
         }
 
-        if (Objects.requireNonNull(sp.getBoolean("hideToolbar", true))) {
+        if (sp.getBoolean("hideToolbar", true)) {
             sWebView.setOnScrollChangeListener((scrollY, oldScrollY) -> {
                 int height = (int) Math.floor(sWebView.getContentHeight() * sWebView.getResources().getDisplayMetrics().density);
                 int webViewHeight = sWebView.getHeight();
@@ -1545,7 +1499,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
                 omniboxRefresh.setImageResource(R.drawable.icon_close);
             } else {
                 try {
-                    if (sWebView.getUrl().startsWith("https://")) {
+                    if (Objects.requireNonNull(sWebView.getUrl()).startsWith("https://")) {
                         omniboxRefresh.setImageResource(R.drawable.icon_refresh);
                     } else {
                         omniboxRefresh.setImageResource(R.drawable.icon_alert);
@@ -1777,9 +1731,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         });
 
 
-        omniboxRefresh.setOnClickListener(v -> {
-            Reload(dialog_overview);
-        });
+        omniboxRefresh.setOnClickListener(v -> Reload(dialog_overview));
 
         final GridView menu_grid_tab = view.findViewById(R.id.menu_grid_tab);
         final GridView menu_grid_share = view.findViewById(R.id.menu_grid_share);
@@ -2291,34 +2243,23 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
         @JavascriptInterface
         public void Search(String text) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    addAlbum("","",true);
-                    updateAlbum(text);
-                    hideOverview();
-                }
+            runOnUiThread(() -> {
+                addAlbum("","",true);
+                updateAlbum(text);
+                hideOverview();
             });
         }
 
         @JavascriptInterface
         public void sign() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    //startActivity(new Intent(MainActivity.this, SignInActivity.class));
-                }
+            runOnUiThread(() -> {
+                //startActivity(new Intent(MainActivity.this, SignInActivity.class));
             });
         }
 
         @JavascriptInterface
         public void feedback() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    startActivity(new Intent(MainActivity.this, FeedbackActivity.class));
-                }
-            });
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, FeedbackActivity.class)));
         }
     }
 
@@ -2329,7 +2270,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
         final Dialog dialog = new Dialog(activity);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.setCancelable(true);
         dialog.setContentView(R.layout.dialog_edit_homescreen);
 
@@ -2340,24 +2281,21 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         urlED.setText(sharedPreferences.getString(url_key,""));
         nameED.setText(sharedPreferences.getString(name_key,""));
 
-        save.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-               String u = urlED.getText().toString().trim();
-               String n = nameED.getText().toString().trim();
-               if (u.isEmpty() || n.isEmpty()){
-                   Toast.makeText(activity, "Enter all details", Toast.LENGTH_SHORT).show();
-               }else{
-                   sharedPreferences.edit().putString(url_key,u).commit();
-                   sharedPreferences.edit().putString(name_key,n).commit();
-                   Toast.makeText(activity, "saved", Toast.LENGTH_SHORT).show();
+        save.setOnClickListener(v -> {
+           String u = urlED.getText().toString().trim();
+           String n = nameED.getText().toString().trim();
+           if (u.isEmpty() || n.isEmpty()){
+               Toast.makeText(activity, "Enter all details", Toast.LENGTH_SHORT).show();
+           }else{
+               sharedPreferences.edit().putString(url_key,u).commit();
+               sharedPreferences.edit().putString(name_key,n).commit();
+               Toast.makeText(activity, "saved", Toast.LENGTH_SHORT).show();
 
-                   home_gridView.setAdapter(new CustomGridViewAdapter());
-                   home_gridView.invalidate();
+               home_gridView.setAdapter(new CustomGridViewAdapter());
+               home_gridView.invalidate();
 
-                   dialog.dismiss();
-               }
-            }
+               dialog.dismiss();
+           }
         });
 
 
@@ -2372,7 +2310,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
        public  String[] web_name = {
                 sharedPreferences.getString("0_name","Google"),
                 sharedPreferences.getString("1_name","Facebook"),
-                sharedPreferences.getString("2_name","Insatgram"),
+                sharedPreferences.getString("2_name","Instagram"),
                 sharedPreferences.getString("3_name","Twitter"),
                 sharedPreferences.getString("4_name","Amazon"),
                 sharedPreferences.getString("5_name","Wikipedia"),
