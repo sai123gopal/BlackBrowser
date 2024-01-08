@@ -16,8 +16,8 @@ android {
         applicationId "com.saigopal.browser"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 18
-        versionName "1.5.31"
+        versionCode 19
+        versionName "1.5.32"
         multiDexEnabled true
         vectorDrawables.useSupportLibrary = true
     }
