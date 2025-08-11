@@ -14,6 +14,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -24,6 +26,8 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.browser.customtabs.CustomTabsClient;
+import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.preference.PreferenceManager;
 
 import android.os.Handler;
@@ -97,6 +101,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -697,6 +702,8 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         overViewNewTab = dialogView.findViewById(R.id.open_new_tab);
         tab_container = dialogView.findViewById(R.id.tab_container);
 
+        ImageView gameZopBanner = dialogView.findViewById(R.id.img_game_banner);
+
         open_tab = dialogView.findViewById(R.id.open_tab);
         ImageButton open_settings =  dialogView.findViewById(R.id.open_settings2);
         mainSearchInput = dialogView.findViewById(R.id.main_search_input);
@@ -732,6 +739,25 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         home_gridView.setOnItemLongClickListener((parent, view, position, id) -> {
             updateHomeGridView(position);
             return true;
+        });
+
+
+        gameZopBanner.setOnClickListener(onClick -> {
+            String gamezopUrl = "https://10788.play.gamezop.com/";
+            Toasty.show(context, "Error");
+            try {
+                Intent activityIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(gamezopUrl));
+                if (isCustomTabAvailable(this, activityIntent)) {
+                    CustomTabsIntent customTabsIntent  = new CustomTabsIntent.Builder().build();
+                    customTabsIntent.launchUrl(this, Uri.parse(gamezopUrl));
+                } else {
+                    addAlbum("Games",gamezopUrl,true);
+                    hideOverview();
+                }
+            } catch (Exception e) {
+                Toasty.show(context, "Error");
+                Log.e("Error", "Exception occurred", e);
+            }
         });
 
         // allow scrolling in listView without closing the bottomSheetDialog
@@ -2363,5 +2389,20 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
             return view;
         }
+    }
+
+    public static boolean isCustomTabAvailable(Context context, Intent intent) {
+        PackageManager packageManager = context.getPackageManager();
+        List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL);
+
+        // Extract package names from ResolveInfo objects
+        List<String> packageNames = new ArrayList<>();
+        for (ResolveInfo info : resolveInfos) {
+            packageNames.add(info.activityInfo.packageName);
+        }
+
+        // Get a package that supports Custom Tabs
+        String packageName = CustomTabsClient.getPackageName(context, packageNames, true);
+        return packageName != null;
     }
 }
