@@ -1,4 +1,30 @@
-# Project exclude paths
-/.gradle/
-.idea
-.idea/libraries
+# Built artifacts
+build/
+.gradle/
+
+# Local configuration
+local.properties
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build
+.externalNativeBuild/
+.cxx/
+
+# Google Services
+google-services.json
+
+# Captures
+captures/
+
+# OS Specific
+.DS_Store
+Thumbs.db
