@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only additions (merged into the release manifest at build time; never shipped). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name="com.saigopal.browser.ui.design.gallery.DesignGalleryActivity"
+            android:exported="false"
+            android:label="BB Design Gallery"
+            android:theme="@style/AppTheme" />
+    </application>
+
+</manifest>

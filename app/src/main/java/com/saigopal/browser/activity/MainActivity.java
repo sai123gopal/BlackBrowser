@@ -237,6 +237,15 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         sp.edit().putBoolean("pdf_create", false).commit();
         sp.edit().putBoolean("IsIncognito",false).commit();
 
+        // P05 shell flip: the Compose shell replaces the legacy view path entirely.
+        // Legacy chrome stays available for one release cycle via LEGACY_SHELL=true.
+        if (!com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            HelperUnit.applyTheme(context);
+            com.saigopal.browser.ui.shell.ComposeShellHost.INSTANCE.install(this);
+            // P08 8.4: UMP consent before any ad request; SDK caches the outcome.
+            com.saigopal.browser.ui.ads.AdsController.INSTANCE.maybeShowConsent(this);
+            return;
+        }
 
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         HelperUnit.applyTheme(context);
@@ -344,11 +353,20 @@ public class MainActivity extends AppCompatActivity implements BrowserController
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (!com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            // Compose shell dispatches from its collector; legacy path re-dispatches in onResume.
+            com.saigopal.browser.ui.shell.ShellActivityHolder.INSTANCE.post(intent);
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
+
+        if (!com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            // Compose shell owns intent dispatch (ShellActivityHolder collector); nothing to do here.
+            return;
+        }
 
         if (sp.getInt("restart_changed", 1) == 1) {
             sp.edit().putInt("restart_changed", 0).apply();
@@ -391,6 +409,15 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             startService(toClearService);
         }
 
+        if (!com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            // Compose shell: release the WebView pool unless a newer Activity already rebuilt it
+            // (identity check inside) — e.g. after a configuration change.
+            com.saigopal.browser.ui.shell.BrowserShellStore.INSTANCE.release(this);
+            com.saigopal.browser.ui.screens.games.GamesHubStore.INSTANCE.release(this);
+            super.onDestroy();
+            return;
+        }
+
         BrowserContainer.clear();
         unregisterReceiver(downloadReceiver);
 
@@ -403,6 +430,16 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (!com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            if (keyCode == KeyEvent.KEYCODE_MENU) {
+                Runnable opener = com.saigopal.browser.ui.shell.ShellActivityHolder.INSTANCE.getMenuOpener();
+                if (opener != null) {
+                    opener.run();
+                    return true;
+                }
+            }
+            return super.onKeyDown(keyCode, event);
+        }
         switch (keyCode) {
             case KeyEvent.KEYCODE_MENU:
                 showOverflow();
@@ -1555,6 +1592,13 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
         chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
         startActivityForResult(chooserIntent, INPUT_FILE_REQUEST_CODE);
+    }
+
+    /** Legacy rollback parity (P09): the old silent auto-grant, kept only for LEGACY_SHELL=true. */
+    @Override
+    public void onGeolocationPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+        HelperUnit.grantPermissionsLoc(this);
+        callback.invoke(origin, true, false);
     }
 
     @Override

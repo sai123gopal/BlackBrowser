@@ -28,3 +28,6 @@ captures/
 # OS Specific
 .DS_Store
 Thumbs.db
+
+# SDD scratch workspace
+.superpowers/

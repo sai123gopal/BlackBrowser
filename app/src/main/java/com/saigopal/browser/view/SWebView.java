@@ -161,6 +161,8 @@ public class SWebView extends WebView implements AlbumController {
     public synchronized HashMap<String, String> getRequestHeaders() {
         HashMap<String, String> requestHeaders = new HashMap<>();
         requestHeaders.put("DNT", "1");
+        // P09 (9.6): Global Privacy Control signal alongside DNT.
+        requestHeaders.put("Sec-GPC", "1");
         if (sp.getBoolean(context.getString(R.string.sp_savedata), false)) {
             requestHeaders.put("Save-Data", "on");
         }
@@ -175,7 +177,12 @@ public class SWebView extends WebView implements AlbumController {
             return;
         }
 
-        setDesktopMode(this,true,url);
+        // P09 (B5): the forced desktop UA no longer runs on the shared load path — desktop mode is
+        // per-tab in the Compose shell (ShellController applies it). The global call survives only
+        // for LEGACY_SHELL rollback parity.
+        if (com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            setDesktopMode(this, true, url);
+        }
 
         HelperUnit.initRendering(this);
 
@@ -223,6 +230,10 @@ public class SWebView extends WebView implements AlbumController {
     }
 
     public synchronized void update(int progress) {
+        // Shell-less views (games hub) have no controller: their progress is nobody's business.
+        if (browserController == null) {
+            return;
+        }
         if (foreground) {
             browserController.updateProgress(progress);
         }

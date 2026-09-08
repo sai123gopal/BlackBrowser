@@ -70,8 +70,15 @@ public class SWebViewClient extends WebViewClient {
 
 
     @Override
+    public void onPageStarted(WebView view, String url, Bitmap favicon) {
+        super.onPageStarted(view, url, favicon);
+        sWebView.update(15);
+    }
+
+    @Override
     public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
+        sWebView.update(100);
 
         boolean isInco = sp.getBoolean("IsIncognito",false);
 

@@ -18,7 +18,7 @@ import java.util.Locale;
 import java.util.Set;
 
 
-public class Cookie {
+public class Cookie implements com.saigopal.browser.data.repo.WhitelistAdapter {
     private static final String FILE = "cookieHosts.txt";
     private static final Set<String> hostsCookie = new HashSet<>();
     private static final List<String> whitelistCookie = new ArrayList<>();

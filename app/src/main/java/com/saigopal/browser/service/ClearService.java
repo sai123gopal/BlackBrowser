@@ -31,22 +31,25 @@ public class ClearService extends Service {
     private void clear() {
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean clearCache = sp.getBoolean(getString(R.string.sp_clear_cache), false);
-        boolean clearCookie = sp.getBoolean(getString(R.string.sp_clear_cookie), false);
-        boolean clearHistory = sp.getBoolean(getString(R.string.sp_clear_history), false);
-        boolean clearIndexedDB = sp.getBoolean(("sp_clearIndexedDB"), false);
+        // P09 (9.8): the decision table moved to ClearPlanner so it is unit-tested; this service
+        // only executes the ops. Behaviour (flag keys, semantics) is unchanged.
+        com.saigopal.browser.domain.ClearPlanner.Flags flags = new com.saigopal.browser.domain.ClearPlanner.Flags(
+            sp.getBoolean(getString(R.string.sp_clear_cache), false),
+            sp.getBoolean(getString(R.string.sp_clear_cookie), false),
+            sp.getBoolean(getString(R.string.sp_clear_history), false),
+            sp.getBoolean(("sp_clearIndexedDB"), false)
+        );
 
-        if (clearCache) {
-            BrowserUnit.clearCache(this);
-        }
-        if (clearCookie) {
-            BrowserUnit.clearCookie();
-        }
-        if (clearHistory) {
-            BrowserUnit.clearHistory(this);
-        }
-        if (clearIndexedDB) {
-            BrowserUnit.clearIndexedDB(this);
+        for (com.saigopal.browser.domain.ClearPlanner.Op op : com.saigopal.browser.domain.ClearPlanner.INSTANCE.plan(flags)) {
+            if (op instanceof com.saigopal.browser.domain.ClearPlanner.Op.ClearCache) {
+                BrowserUnit.clearCache(this);
+            } else if (op instanceof com.saigopal.browser.domain.ClearPlanner.Op.ClearCookies) {
+                BrowserUnit.clearCookie();
+            } else if (op instanceof com.saigopal.browser.domain.ClearPlanner.Op.ClearHistory) {
+                BrowserUnit.clearHistory(this);
+            } else if (op instanceof com.saigopal.browser.domain.ClearPlanner.Op.ClearIndexedDb) {
+                BrowserUnit.clearIndexedDB(this);
+            }
         }
     }
 }

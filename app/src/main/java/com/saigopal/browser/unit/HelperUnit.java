@@ -315,30 +315,19 @@ public class HelperUnit {
             0, 0, 0, 1.0f, 0     // Alpha
     };
 
+    /**
+     * P09 (B13): force-dark and the ColorMatrix inversion are gone. Web content now follows the
+     * app theme via WebView algorithmic darkening — allowed for SYSTEM/DARK/AMOLED, disabled for
+     * LIGHT ("1"). The legacy sp_invert pref is kept as the user-facing master switch for this
+     * (relabelled "Darken web pages"): off means websites always keep their original colors.
+     */
     public static void initRendering(WebView webView) {
-        if (sp.getBoolean("sp_invert", true)) {
-            if(WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
-                WebSettingsCompat.setForceDark(webView.getSettings(), WebSettingsCompat.FORCE_DARK_ON);
-            } else {
-                Paint paint = new Paint();
-                ColorMatrix matrix = new ColorMatrix();
-                matrix.set(NEGATIVE_COLOR);
-                ColorMatrix gcm = new ColorMatrix();
-                gcm.setSaturation(0);
-                ColorMatrix concat = new ColorMatrix();
-                concat.setConcat(matrix, gcm);
-                ColorMatrixColorFilter filter = new ColorMatrixColorFilter(concat);
-                paint.setColorFilter(filter);
-                // maybe sometime LAYER_TYPE_NONE would better?
-                webView.setLayerType(View.LAYER_TYPE_HARDWARE, paint);
-            }
-        } else {
-            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-
-            if(WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
-                WebSettingsCompat.setForceDark(webView.getSettings(), WebSettingsCompat.FORCE_DARK_OFF);
-            }
+        String theme = sp.getString("sp_theme", "0");
+        boolean darkeningAllowed = !"1".equals(theme) && sp.getBoolean("sp_invert", true);
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.getSettings(), darkeningAllowed);
         }
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
     }
 
     @SuppressWarnings("unchecked")

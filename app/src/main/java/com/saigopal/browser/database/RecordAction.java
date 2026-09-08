@@ -49,9 +49,14 @@ public class RecordAction {
     }
 
     public List<Record> listStartSite (Activity activity) {
+        return listStartSite((Context) activity);
+    }
+
+    // P02: Context overload so background repositories can query without an Activity.
+    public List<Record> listStartSite (Context context) {
 
         List<Record> list = new LinkedList<>();
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(activity);
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
         String sortBy = Objects.requireNonNull(sp.getString("sort_startSite", "ordinal"));
 
         Cursor cursor;
@@ -191,14 +196,15 @@ public class RecordAction {
     // General
 
     public void addDomain(String domain, String table) {
-        if (domain == null || domain.trim().isEmpty()) { return; }
+        if (domain == null || domain.trim().isEmpty() || database == null) { return; }
+        if (checkDomain(domain.trim(), table)) { return; }
         ContentValues values = new ContentValues();
         values.put(RecordUnit.COLUMN_DOMAIN, domain.trim());
         database.insert(table, null, values);
     }
 
     public boolean checkDomain(String domain, String table) {
-        if (domain == null || domain.trim().isEmpty()) {
+        if (domain == null || domain.trim().isEmpty() || database == null) {
             return false;
         }
         Cursor cursor = database.query(
@@ -219,8 +225,8 @@ public class RecordAction {
     }
 
     public void deleteDomain(String domain, String table) {
-        if (domain == null || domain.trim().isEmpty()) { return; }
-        database.execSQL("DELETE FROM "+ table + " WHERE " + RecordUnit.COLUMN_DOMAIN + " = " + "\"" + domain.trim() + "\"");
+        if (domain == null || domain.trim().isEmpty() || database == null) { return; }
+        database.delete(table, RecordUnit.COLUMN_DOMAIN + "=?", new String[]{domain.trim()});
     }
 
     public List<String> listDomains(String table) {
@@ -286,12 +292,17 @@ public class RecordAction {
     }
 
     public List<Record> listEntries (Activity activity) {
+        return listEntries((Context) activity);
+    }
+
+    // P02: Context overload for repositories.
+    public List<Record> listEntries (Context context) {
         List<Record> list = new ArrayList<>();
-        RecordAction action = new RecordAction(activity);
+        RecordAction action = new RecordAction(context);
         action.open(false);
-        list.addAll(action.listStartSite(activity));
+        list.addAll(action.listStartSite(context));
         list.addAll(action.listHistory());
-        list.addAll(listBookmark(activity, false, 0));
+        list.addAll(listBookmark(context, false, 0));
         return list;
     }
 }

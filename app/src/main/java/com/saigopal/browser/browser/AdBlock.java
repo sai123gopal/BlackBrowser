@@ -16,7 +16,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
-public class AdBlock {
+public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter {
     private static final String FILE = "hosts.txt";
     private static final Set<String> hosts = new HashSet<>();
     private static final List<String> whitelist = new ArrayList<>();

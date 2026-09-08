@@ -19,6 +19,9 @@ public class SClickHandler extends Handler {
     @Override
     public void handleMessage(Message message) {
         super.handleMessage(message);
-        webView.getBrowserController().onLongPress(message.getData().getString("url"));
+        // Shell-less views (games hub) have no controller: long-press is a no-op there.
+        if (webView.getBrowserController() != null) {
+            webView.getBrowserController().onLongPress(message.getData().getString("url"));
+        }
     }
 }

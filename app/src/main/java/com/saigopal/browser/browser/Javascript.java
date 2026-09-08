@@ -18,7 +18,7 @@ import java.util.Locale;
 import java.util.Set;
 
 
-public class Javascript {
+public class Javascript implements com.saigopal.browser.data.repo.WhitelistAdapter {
     private static final String FILE = "javaHosts.txt";
     private static final Set<String> hostsJS = new HashSet<>();
     private static final List<String> whitelistJS = new ArrayList<>();

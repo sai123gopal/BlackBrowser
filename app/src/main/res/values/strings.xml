@@ -91,8 +91,8 @@
     <string name="setting_summary_search_engine_qwant">Qwant</string>
     <string name="setting_summary_search_engine_ecosia">Ecosia</string>
 
-    <string name="setting_title_inverted">Inverted colors</string>
-    <string name="setting_summary_inverted">If checked, content will be rendered in a inverted grey scale mode. This is a kind of \"night mode\".</string>
+    <string name="setting_title_inverted">Darken web pages</string>
+    <string name="setting_summary_inverted">Web content follows the app theme when on. Turn off to keep websites in their original colors.</string>
 
     <string name="setting_title_font">Font size</string>
     <string name="setting_summary_font">Change the font size for displaying websites.</string>
@@ -330,5 +330,90 @@ Black browser comes with 4 different options of theme System, Light, Dark and Am
     <string name="watch_ad">Or You can contribute by watching Ad</string>
     <string name="website_url">Website URL</string>
     <string name="website_title">Website title</string>
+
+    <!-- v2 Compose settings (bb_ prefix = new in the rewrite, safe to translate later) -->
+    <string name="bb_settings_title">Settings</string>
+    <string name="bb_settings_search_hint">Search settings</string>
+    <string name="bb_settings_search_empty">No matching settings</string>
+    <string name="bb_section_appearance">Appearance</string>
+    <string name="bb_dynamic_color_title">Material You colors</string>
+    <string name="bb_dynamic_color_summary">Use wallpaper-based colors on Android 12+</string>
+    <string name="bb_user_agent_default">Default</string>
+    <string name="bb_user_agent_hint">Custom user agent</string>
+    <string name="bb_backup_coming_soon">Backup rework lands in the next update</string>
+    <string name="bb_legacy_data_link">Advanced (legacy)</string>
+    <string name="bb_legacy_data_summary">Old export/import screens, removed after backup rework</string>
+
+    <!-- v2 whitelist screen additions -->
+    <string name="whitelist_add_hint">example.com</string>
+    <string name="whitelist_invalid">Enter a valid domain</string>
+    <string name="whitelist_empty_title">Nothing whitelisted yet</string>
+    <string name="whitelist_empty_hint">Add a domain above to exempt it from this blocklist.</string>
+    <string name="whitelist_remove">Remove</string>
+    <string name="whitelist_clear_all">Clear all</string>
+    <string name="whitelist_clear_confirm">Remove every domain from this list?</string>
+    <string name="whitelist_export">Export as txt</string>
+
+    <!-- bb: feedback screen (legacy FeedbackActivity copy preserved verbatim) -->
+    <string name="bb_feedback_hint">Your feedback… (min 15 characters)</string>
+    <string name="bb_feedback_response">I would like to receive a response</string>
+    <string name="bb_feedback_email_hint">Email address (optional)</string>
+    <!-- Verbatim legacy validation/result messages -->
+    <string name="bb_feedback_too_short">Feedback must contains 15 or more characters</string>
+    <string name="bb_feedback_thanks">Thank you for the feedback</string>
+    <string name="bb_feedback_error">Error can\&#39;t send feedback</string>
+    <string name="bb_feedback_sending">Sending…</string>
+
+    <!-- bb: overview sheet -->
+    <string name="bb_overview_games_hint">Play free games in the Gamezop hub</string>
+    <string name="bb_clear_bookmarks_confirm">Delete every saved bookmark? This cannot be undone.</string>
+    <string name="bb_clear_history_confirm">Delete the entire browsing history? This cannot be undone.</string>
+    <string name="bb_saved_empty_hint">Pages you save appear here.</string>
+    <string name="bb_history_empty_hint">Sites you visit will show up here.</string>
+
+    <!-- bb: page menu -->
+    <string name="bb_menu_incognito">Incognito mode</string>
+    <string name="bb_menu_reload">Reload page</string>
+    <string name="bb_secure_connection">Secure connection</string>
+    <string name="bb_insecure_connection">Insecure connection</string>
+    <string name="bb_apply_reload">Apply &amp; reload</string>
+    <string name="bb_whitelisted_for_domain">Whitelisted for this domain — tap to remove</string>
+    <string name="bb_not_whitelisted_for_domain">Not whitelisted for this domain — tap to allow</string>
+
+    <!-- bb: engine dialogs (legacy had swipe-cancel only; these labels name the same decisions) -->
+    <string name="bb_dialog_back">Back to safety</string>
+    <string name="bb_dialog_resend">Resend</string>
+
+    <!-- bb: native start page (P07) -->
+    <string name="bb_start_pinned">Pinned</string>
+    <string name="bb_start_tiles_empty">No pinned sites yet.</string>
+    <string name="bb_start_games_title">Games</string>
+    <string name="bb_start_feedback">Send feedback</string>
+
+    <!-- bb: browser shell (P05) -->
+    <string name="bb_menu_more">More options</string>
+    <string name="bb_shell_tabs">Tabs</string>
+
+    <!-- bb: privacy hardening (P09) -->
+    <string name="bb_geo_title">Location access</string>
+    <string name="bb_geo_message">Allow %1$s to use your location?</string>
+    <string name="bb_incognito_title">Incognito tab</string>
+    <string name="bb_incognito_body">In incognito tabs, BlackBrowser does not save your browsing history, and cookies are blocked while the tab is open. Activity is still visible to websites, your employer or school, and your internet provider. New tabs keep using this mode until you turn it off in the menu.</string>
+    <string name="bb_menu_desktop_site">Desktop site</string>
+    <string name="bb_privacy_reset_permissions">Reset website permissions</string>
+    <string name="bb_privacy_reset_permissions_summary">Clears remembered location decisions for all sites; websites will ask again.</string>
+
+    <!-- bb: data & backup (P10) -->
+    <string name="bb_backup_exported">Backup saved</string>
+    <string name="bb_backup_failed">Backup failed</string>
+    <string name="bb_backup_imported_arg">Restored %1$d items</string>
+    <string name="bb_bookmarks_imported_arg">%1$d bookmarks imported</string>
+    <string name="bb_backup_legacy_note">Old folder-based backups moved here — use the export and import actions above.</string>
+    <string name="bb_legacy_data_note_title">About legacy backups</string>
+
+    <!-- bb: ads & consent (P08) -->
+    <string name="bb_privacy_options">Privacy options</string>
+    <string name="bb_privacy_options_summary">Review or change your ad personalization choices.</string>
+    <string name="bb_privacy_options_saved">Your choices have been saved</string>
 
 </resources>

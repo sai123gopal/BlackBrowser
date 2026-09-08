@@ -18,7 +18,7 @@ import java.util.Locale;
 import java.util.Set;
 
 
-public class Remote {
+public class Remote implements com.saigopal.browser.data.repo.WhitelistAdapter {
     private static final String FILE = "remoteHosts.txt";
     private static final Set<String> hostsRemote = new HashSet<>();
     private static final List<String> whitelistRemote = new ArrayList<>();
