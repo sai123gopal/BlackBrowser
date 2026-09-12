@@ -79,6 +79,17 @@ class TabManager(private val appContext: Context) {
         }
     }
 
+    /** Dynamically toggles incognito mode on an existing open tab. */
+    fun setIncognito(id: Long, on: Boolean) {
+        val updated = _tabs.value.map { t ->
+            if (t.id != id) t else t.copy(isIncognito = on)
+        }
+        if (updated != _tabs.value) {
+            _tabs.value = updated
+            scheduleSessionSave()
+        }
+    }
+
     fun close(id: Long): TabState? {
         val removed = _tabs.value.firstOrNull { it.id == id } ?: return null
         val remaining = _tabs.value.filterNot { it.id == id }.mapIndexed { i, t -> t.copy(position = i) }

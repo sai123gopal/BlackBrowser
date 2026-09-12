@@ -210,6 +210,7 @@ fun BrowserScreen(
     var findCount by remember { mutableIntStateOf(0) }
     var fastTogglesVisible by remember { mutableStateOf(false) }
     var confirmCloseRequested by remember { mutableStateOf(false) }
+    var showAddToHomeConfirm by remember { mutableStateOf(false) }
     val sneakbarState = rememberTopSneakbarState()
 
     // P09 (9.1): OS-level location permission follows the user's web-level Allow decision.
@@ -320,6 +321,10 @@ fun BrowserScreen(
                 onEditTiles = { controller.openOverview(OverviewSegment.HOME) },
                 onOpenGames = onOpenGames,
                 onOpenFeedback = onOpenFeedback,
+                onOpenBookmarks = { controller.openOverview(OverviewSegment.SAVED) },
+                onOpenHistory = { controller.openOverview(OverviewSegment.HISTORY) },
+                onOpenTabs = { controller.openOverview(OverviewSegment.TABS) },
+                onOpenSettings = onOpenSettings,
             )
         }
 
@@ -595,6 +600,7 @@ fun BrowserScreen(
                 // P09: the header reflects the ACTIVE TAB's mode, not the new-tab default.
                 isIncognito = activeTab?.isIncognito == true,
                 isDesktop = activeTab?.isDesktopMode == true,
+                isStartPage = activeOnStartPage,
             ),
             actions = PageMenuActions(
                 onNewTab = {
@@ -620,12 +626,7 @@ fun BrowserScreen(
                     }
                 },
                 onAddToHome = {
-                    activeTab?.let { t ->
-                        scope.launch {
-                            container.records.addTile(t.title.ifBlank { t.url.orEmpty() }, t.url.orEmpty(), tabs.size)
-                            sneakbarState.show("Added to home screen", Icons.Filled.Home)
-                        }
-                    }
+                    showAddToHomeConfirm = true
                 },
                 onCreateShortcut = {
                     activeTab?.let { t ->
@@ -681,8 +682,9 @@ fun BrowserScreen(
                 sneakbarState.show("Page reloaded", Icons.Filled.Refresh)
             },
             onIncognitoChanged = { on ->
+                controller.toggleActiveTabIncognito(on)
                 sneakbarState.show(
-                    if (on) "Incognito mode on for new tabs" else "Incognito mode off",
+                    if (on) "Incognito mode active for this tab" else "Incognito mode turned off",
                     Icons.Filled.Info,
                 )
             },
@@ -762,6 +764,57 @@ fun BrowserScreen(
             confirmButton = {
                 TextButton(onClick = { controller.incognitoExplainerVisible.value = false }) {
                     Text(stringResource(android.R.string.ok))
+                }
+            },
+        )
+    }
+
+    if (showAddToHomeConfirm && activeTab != null) {
+        val pageTitle = activeTab.title.ifBlank { activeTab.url.orEmpty() }
+        var homeTileTitle by remember(pageTitle) { mutableStateOf(pageTitle) }
+        val tileUrl = activeTab.url.orEmpty()
+
+        AlertDialog(
+            onDismissRequest = { showAddToHomeConfirm = false },
+            title = { Text(text = "Add to Home Screen", style = MaterialTheme.typography.titleLarge) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Add this webpage to your Start Page tiles?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    BBTextFieldPill(
+                        value = homeTileTitle,
+                        onValueChange = { homeTileTitle = it },
+                        hint = "Tile Title",
+                    )
+                    Text(
+                        text = tileUrl,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val finalTitle = homeTileTitle.trim().ifEmpty { pageTitle }
+                        scope.launch {
+                            container.records.addTile(finalTitle, tileUrl, tabs.size)
+                            sneakbarState.show("Added to home screen", Icons.Filled.Home)
+                        }
+                        showAddToHomeConfirm = false
+                    },
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddToHomeConfirm = false }) {
+                    Text("Cancel")
                 }
             },
         )

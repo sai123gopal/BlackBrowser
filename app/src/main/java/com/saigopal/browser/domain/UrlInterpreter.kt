@@ -51,9 +51,13 @@ object UrlInterpreter {
     /** Parity port of `BrowserUnit.isURL`. */
     fun isUrl(url: String?): Boolean {
         if (url == null) return false
-        val lowered = url.lowercase()
+        val lowered = url.lowercase().trim()
         if (lowered.startsWith(URL_ABOUT_BLANK) ||
             lowered == URL_START_PAGE ||
+            lowered == "about:start" ||
+            lowered == "about:home" ||
+            lowered == "about:newtab" ||
+            lowered.startsWith(URL_SCHEME_ABOUT) ||
             lowered.startsWith(URL_SCHEME_MAIL_TO) ||
             lowered.startsWith(URL_SCHEME_FILE)
         ) {
@@ -63,7 +67,15 @@ object UrlInterpreter {
     }
 
     /** True when [url] targets the native start page rendered by the Compose shell. */
-    fun isStartPage(url: String?): Boolean = url != null && url.lowercase() == URL_START_PAGE
+    fun isStartPage(url: String?): Boolean {
+        if (url == null) return false
+        val lowered = url.lowercase().trim()
+        return lowered == URL_START_PAGE ||
+            lowered == "about:start" ||
+            lowered == "about:home" ||
+            lowered == "about:newtab" ||
+            lowered.contains("newtab.html")
+    }
 
     /**
      * Turn omnibox input into a loadable URL: unwraps Google Play/Plus redirects, keeps
@@ -81,6 +93,10 @@ object UrlInterpreter {
             val start = temp.indexOf(URL_PREFIX_GOOGLE_PLUS) + URL_PREFIX_GOOGLE_PLUS.length
             val end = temp.indexOf(URL_SUFFIX_GOOGLE_PLUS)
             q = query.substring(start, end)
+        }
+
+        if (isStartPage(q)) {
+            return URL_START_PAGE
         }
 
         if (isUrl(q)) {

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -136,32 +137,38 @@ private fun TabCard(
             .clickable(onClick = onActivate),
     ) {
         Column(Modifier.fillMaxSize()) {
-            // Header: site title + close button
+            // Header: favicon + site title + incognito badge + close button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = BBSpace.sm, top = BBSpace.xs, end = BBSpace.xxs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (tab.isIncognito) {
-                    Icon(
-                        Icons.Filled.Info,
-                        contentDescription = "Incognito",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .padding(end = 2.dp),
+                // Favicon in header
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    com.saigopal.browser.ui.design.components.LetterTile(
+                        label = tab.title,
+                        url = tab.url,
+                        tileSize = 18.dp,
                     )
-                } else if (tab.url.orEmpty().startsWith("https")) {
-                    Icon(
-                        Icons.Filled.Lock,
-                        contentDescription = "Secure",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .size(14.dp)
-                            .padding(end = 2.dp),
-                    )
+                    if (!tab.url.isNullOrEmpty()) {
+                        coil.compose.SubcomposeAsyncImage(
+                            model = "https://www.google.com/s2/favicons?sz=64&domain_url=${tab.url}",
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            loading = { },
+                            error = { },
+                        )
+                    }
                 }
+
+                Spacer(Modifier.width(6.dp))
+
                 Text(
                     text = tab.title.ifBlank { tab.url.orEmpty().ifBlank { stringResource(R.string.album_title_tab) } },
                     style = MaterialTheme.typography.labelMedium,
@@ -171,6 +178,26 @@ private fun TabCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+
+                if (tab.isIncognito) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(18.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.Info,
+                                contentDescription = "Incognito",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+
                 IconButton(
                     onClick = onClose,
                     modifier = Modifier.size(28.dp),
@@ -184,7 +211,8 @@ private fun TabCard(
                 }
             }
 
-            // Body: Webview miniature viewport preview placeholder
+            // Body: Rich website viewport preview
+            val isStart = com.saigopal.browser.domain.UrlInterpreter.isStartPage(tab.url)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -192,37 +220,141 @@ private fun TabCard(
                     .padding(horizontal = BBSpace.xs)
                     .padding(bottom = BBSpace.xs)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                 contentAlignment = Alignment.Center,
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(BBSpace.sm),
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        modifier = Modifier.size(36.dp),
+                if (isStart) {
+                    // Start page miniature mockup preview
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(BBSpace.sm),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = (tab.title.firstOrNull() ?: tab.url?.firstOrNull() ?: 'W').uppercase(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            modifier = Modifier.size(44.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Filled.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "Start Page",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else {
+                    // Website preview viewport
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(BBSpace.xs),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        // Mini URL bar
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(22.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = if (tab.url.orEmpty().startsWith("https")) {
+                                        androidx.compose.material.icons.Icons.Filled.Lock
+                                    } else {
+                                        androidx.compose.material.icons.Icons.Filled.Info
+                                    },
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(10.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                val host = com.saigopal.browser.domain.UrlInterpreter.domainOf(tab.url.orEmpty())
+                                Text(
+                                    text = host.ifBlank { tab.url.orEmpty() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp),
+                                )
+                            }
+                        }
+
+                        // Central website preview graphic / favicon
+                        Spacer(Modifier.weight(1f))
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            com.saigopal.browser.ui.design.components.LetterTile(
+                                label = tab.title,
+                                url = tab.url,
+                                tileSize = 52.dp,
                             )
+                            if (!tab.url.isNullOrEmpty()) {
+                                coil.compose.SubcomposeAsyncImage(
+                                    model = "https://www.google.com/s2/favicons?sz=128&domain_url=${tab.url}",
+                                    contentDescription = null,
+                                    modifier = Modifier.size(36.dp),
+                                    loading = { },
+                                    error = { },
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = tab.title.ifBlank { tab.url.orEmpty() },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        Spacer(Modifier.weight(1f))
+
+                        if (tab.isDesktopMode) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                            ) {
+                                Text(
+                                    text = "Desktop",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                    fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
+                                )
+                            }
                         }
                     }
-                    Spacer(Modifier.height(BBSpace.xs))
-                    val urlSnippet = tab.url?.removePrefix("https://")?.removePrefix("http://")?.removePrefix("www.")
-                    Text(
-                        text = urlSnippet ?: stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                 }
             }
         }

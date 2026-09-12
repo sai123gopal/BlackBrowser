@@ -95,7 +95,7 @@ fun PageMenuSheet(
                 .padding(bottom = BBSpace.xl),
             verticalArrangement = Arrangement.spacedBy(BBSpace.sm),
         ) {
-            // ---- Site Identity Card -----------------------------------------------------------------
+            // ---- Site Identity / Home Card ---------------------------------------------------------
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surfaceContainer,
@@ -112,19 +112,28 @@ fun PageMenuSheet(
                             .padding(4.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            if (page.isSecure) Icons.Filled.Lock else Icons.Filled.Warning,
-                            contentDescription = stringResource(
-                                if (page.isSecure) R.string.bb_secure_connection else R.string.bb_insecure_connection,
-                            ),
-                            tint = if (page.isSecure) MaterialTheme.colorScheme.primary else aurora.amber.strong,
-                            modifier = Modifier.size(24.dp),
-                        )
+                        if (page.isStartPage) {
+                            Icon(
+                                Icons.Filled.Home,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        } else {
+                            Icon(
+                                if (page.isSecure) Icons.Filled.Lock else Icons.Filled.Warning,
+                                contentDescription = stringResource(
+                                    if (page.isSecure) R.string.bb_secure_connection else R.string.bb_insecure_connection,
+                                ),
+                                tint = if (page.isSecure) MaterialTheme.colorScheme.primary else aurora.amber.strong,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
                     }
                     Spacer(Modifier.size(BBSpace.xs))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = page.title.ifBlank { page.url.orEmpty() },
+                            text = if (page.isStartPage) "BlackBrowser Home" else page.title.ifBlank { page.url.orEmpty() },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -132,13 +141,13 @@ fun PageMenuSheet(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = page.url.orEmpty(),
+                            text = if (page.isStartPage) "Fast, Private & Secure" else page.url.orEmpty(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (page.blockedCount > 0) {
+                        if (!page.isStartPage && page.blockedCount > 0) {
                             Spacer(Modifier.height(4.dp))
                             Surface(
                                 shape = PillShape,
@@ -153,15 +162,17 @@ fun PageMenuSheet(
                             }
                         }
                     }
-                    IconButton(onClick = {
-                        onDismiss()
-                        onReload()
-                    }) {
-                        Icon(
-                            Icons.Filled.Refresh,
-                            contentDescription = stringResource(R.string.bb_menu_reload),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    if (!page.isStartPage) {
+                        IconButton(onClick = {
+                            onDismiss()
+                            onReload()
+                        }) {
+                            Icon(
+                                Icons.Filled.Refresh,
+                                contentDescription = stringResource(R.string.bb_menu_reload),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -180,35 +191,56 @@ fun PageMenuSheet(
                         actions.onNewTab()
                     },
                 )
-                QuickActionPill(
-                    icon = Icons.Filled.Search,
-                    label = stringResource(R.string.menu_other_searchSite),
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onDismiss()
-                        actions.onFindInPage()
-                    },
-                )
-                if (actions.onToggleDesktop != null) {
+                if (page.isStartPage) {
                     QuickActionPill(
-                        icon = Icons.Filled.Build,
-                        label = stringResource(R.string.bb_menu_desktop_site),
+                        icon = Icons.Filled.ShoppingCart,
+                        label = stringResource(R.string.menu_download),
                         modifier = Modifier.weight(1f),
                         onClick = {
                             onDismiss()
-                            actions.onToggleDesktop.invoke()
+                            actions.onOpenDownloads()
+                        },
+                    )
+                    QuickActionPill(
+                        icon = Icons.Filled.Settings,
+                        label = stringResource(R.string.setting_label),
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onDismiss()
+                            actions.onOpenSettings()
+                        },
+                    )
+                } else {
+                    QuickActionPill(
+                        icon = Icons.Filled.Search,
+                        label = stringResource(R.string.menu_other_searchSite),
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onDismiss()
+                            actions.onFindInPage()
+                        },
+                    )
+                    if (actions.onToggleDesktop != null) {
+                        QuickActionPill(
+                            icon = Icons.Filled.Build,
+                            label = stringResource(R.string.bb_menu_desktop_site),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onDismiss()
+                                actions.onToggleDesktop.invoke()
+                            },
+                        )
+                    }
+                    QuickActionPill(
+                        icon = Icons.Filled.Share,
+                        label = stringResource(R.string.menu_share_link),
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onDismiss()
+                            actions.onShare()
                         },
                     )
                 }
-                QuickActionPill(
-                    icon = Icons.Filled.Share,
-                    label = stringResource(R.string.menu_share_link),
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onDismiss()
-                        actions.onShare()
-                    },
-                )
             }
 
             // ---- Incognito Card ---------------------------------------------------------------------
@@ -220,75 +252,77 @@ fun PageMenuSheet(
                 IncognitoRow(page.isIncognito, onToggled = onIncognitoChanged)
             }
 
-            // ---- Bookmarks & Home Card --------------------------------------------------------------
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column {
-                    MenuRowItem(
-                        icon = Icons.Filled.Star,
-                        label = stringResource(R.string.menu_fav),
-                        onClick = { onDismiss(); actions.onSetFavorite() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.FavoriteBorder,
-                        label = stringResource(R.string.menu_save_bookmark),
-                        onClick = { onDismiss(); actions.onAddBookmark() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.Home,
-                        label = stringResource(R.string.menu_save_home),
-                        onClick = { onDismiss(); actions.onAddToHome() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.AddCircle,
-                        label = stringResource(R.string.menu_sc),
-                        onClick = { onDismiss(); actions.onCreateShortcut() },
-                    )
+            // ---- Bookmarks & Home Card (Webpages only) ----------------------------------------------
+            if (!page.isStartPage) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column {
+                        MenuRowItem(
+                            icon = Icons.Filled.Star,
+                            label = stringResource(R.string.menu_fav),
+                            onClick = { onDismiss(); actions.onSetFavorite() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.FavoriteBorder,
+                            label = stringResource(R.string.menu_save_bookmark),
+                            onClick = { onDismiss(); actions.onAddBookmark() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.Home,
+                            label = stringResource(R.string.menu_save_home),
+                            onClick = { onDismiss(); actions.onAddToHome() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.AddCircle,
+                            label = stringResource(R.string.menu_sc),
+                            onClick = { onDismiss(); actions.onCreateShortcut() },
+                        )
+                    }
                 }
-            }
 
-            // ---- Tools & Downloads Card -------------------------------------------------------------
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column {
-                    MenuRowItem(
-                        icon = Icons.Filled.List,
-                        label = stringResource(R.string.menu_shareClipboard),
-                        onClick = { onDismiss(); actions.onCopyLink() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.ExitToApp,
-                        label = stringResource(R.string.menu_open_with),
-                        onClick = { onDismiss(); actions.onOpenWith() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.Create,
-                        label = stringResource(R.string.menu_save_as),
-                        onClick = { onDismiss(); actions.onSaveAs() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.Done,
-                        label = stringResource(R.string.menu_save_pdf),
-                        onClick = { onDismiss(); actions.onPrintPdf() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    MenuRowItem(
-                        icon = Icons.Filled.ShoppingCart,
-                        label = stringResource(R.string.menu_download),
-                        onClick = { onDismiss(); actions.onOpenDownloads() },
-                    )
+                // ---- Tools & Downloads Card (Webpages only) -----------------------------------------
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column {
+                        MenuRowItem(
+                            icon = Icons.Filled.List,
+                            label = stringResource(R.string.menu_shareClipboard),
+                            onClick = { onDismiss(); actions.onCopyLink() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.ExitToApp,
+                            label = stringResource(R.string.menu_open_with),
+                            onClick = { onDismiss(); actions.onOpenWith() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.Create,
+                            label = stringResource(R.string.menu_save_as),
+                            onClick = { onDismiss(); actions.onSaveAs() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.Done,
+                            label = stringResource(R.string.menu_save_pdf),
+                            onClick = { onDismiss(); actions.onPrintPdf() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        MenuRowItem(
+                            icon = Icons.Filled.ShoppingCart,
+                            label = stringResource(R.string.menu_download),
+                            onClick = { onDismiss(); actions.onOpenDownloads() },
+                        )
+                    }
                 }
             }
 
@@ -299,12 +333,14 @@ fun PageMenuSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column {
-                    MenuRowItem(
-                        icon = Icons.Filled.Settings,
-                        label = stringResource(R.string.setting_label),
-                        onClick = { onDismiss(); actions.onOpenSettings() },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    if (!page.isStartPage) {
+                        MenuRowItem(
+                            icon = Icons.Filled.Settings,
+                            label = stringResource(R.string.setting_label),
+                            onClick = { onDismiss(); actions.onOpenSettings() },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    }
                     MenuRowItem(
                         icon = Icons.Filled.Close,
                         label = stringResource(R.string.menu_quit),
@@ -357,8 +393,7 @@ private fun QuickActionPill(
 
 @Composable
 private fun IncognitoRow(initialActive: Boolean, onToggled: ((Boolean) -> Unit)? = null) {
-    val container = rememberContainer()
-    var active by remember { mutableStateOf(initialActive) }
+    var active by remember(initialActive) { mutableStateOf(initialActive) }
 
     Row(
         modifier = Modifier
@@ -370,7 +405,7 @@ private fun IncognitoRow(initialActive: Boolean, onToggled: ((Boolean) -> Unit)?
         Icon(
             Icons.Filled.Info,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.padding(BBSpace.sm))
         Column(Modifier.weight(1f)) {
@@ -381,7 +416,7 @@ private fun IncognitoRow(initialActive: Boolean, onToggled: ((Boolean) -> Unit)?
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "Private tabs leave no browsing trace",
+                "Private mode for this tab. History, cookies, and cache won't be saved from here on.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -390,7 +425,6 @@ private fun IncognitoRow(initialActive: Boolean, onToggled: ((Boolean) -> Unit)?
             checked = active,
             onCheckedChange = { on ->
                 active = on
-                container.settings.update { it.copy(incognitoActive = on) }
                 onToggled?.invoke(on)
             },
         )

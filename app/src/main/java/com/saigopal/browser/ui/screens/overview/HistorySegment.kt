@@ -3,12 +3,18 @@ package com.saigopal.browser.ui.screens.overview
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
@@ -22,16 +28,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import coil.compose.SubcomposeAsyncImage
 import com.saigopal.browser.R
-import com.saigopal.browser.unit.RecordUnit
 import com.saigopal.browser.ui.design.components.BBConfirmSheet
 import com.saigopal.browser.ui.design.components.EmptyState
+import com.saigopal.browser.ui.design.components.LetterTile
 import com.saigopal.browser.ui.design.components.SectionHeader
 import com.saigopal.browser.ui.design.theme.BBSpace
 import com.saigopal.browser.ui.di.rememberContainer
+import com.saigopal.browser.unit.RecordUnit
 import kotlinx.coroutines.launch
 
 /*
@@ -125,26 +138,68 @@ private fun HistoryRow(
 ) {
     var showSheet by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier
+    Row(
+        modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = { showSheet = true })
             .padding(horizontal = BBSpace.md, vertical = BBSpace.xs),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(
-            entry.title.ifBlank { entry.url },
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            entry.url,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // Website image / favicon tile
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            LetterTile(
+                label = entry.title,
+                url = entry.url,
+                tileSize = 40.dp,
+            )
+            if (entry.url.isNotBlank()) {
+                SubcomposeAsyncImage(
+                    model = "https://www.google.com/s2/favicons?sz=64&domain_url=${entry.url}",
+                    contentDescription = null,
+                    modifier = Modifier.size(26.dp),
+                    loading = { },
+                    error = { },
+                )
+            }
+        }
+
+        Spacer(Modifier.width(BBSpace.sm))
+
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = entry.title.ifBlank { entry.url },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = entry.url.removePrefix("https://").removePrefix("http://").removePrefix("www."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (entry.time > 0) {
+                    Text(
+                        text = " • ${android.text.format.DateUtils.formatDateTime(LocalContext.current, entry.time, android.text.format.DateUtils.FORMAT_SHOW_TIME)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
     }
 
     if (showSheet) {

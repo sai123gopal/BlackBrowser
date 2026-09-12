@@ -15,6 +15,7 @@ data class PageInfo(
     val isIncognito: Boolean,
     /** P09 (9.3): per-tab desktop-site state; drives the toggle row when onToggleDesktop != null. */
     val isDesktop: Boolean = false,
+    val isStartPage: Boolean = false,
 )
 
 /**

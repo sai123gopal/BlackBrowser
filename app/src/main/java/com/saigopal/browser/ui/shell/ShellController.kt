@@ -301,6 +301,24 @@ class ShellController(
     }
 
     /**
+     * Toggles incognito mode on the active tab dynamically.
+     * When toggled ON, the active tab continues in incognito mode:
+     * - Future browsing leaves no history.
+     * - Cookies are isolated/disabled for this tab.
+     * - Also updates settings.incognitoActive so subsequent new tabs follow user intent.
+     */
+    fun toggleActiveTabIncognito(on: Boolean) {
+        val id = activeTabId() ?: return
+        container.tabs.setIncognito(id, on)
+        container.settings.update { it.copy(incognitoActive = on) }
+        applyIncognitoCookiePolicy()
+        if (on && !incognitoExplainerSeen()) {
+            markIncognitoExplainerSeen()
+            incognitoExplainerVisible.value = true
+        }
+    }
+
+    /**
      * P09 (B4): while an incognito tab is foregrounded the engine accepts no cookies; leaving it
      * restores the user's cookie preference. Called on every active-tab switch.
      */
