@@ -16,6 +16,7 @@ data class PageInfo(
     /** P09 (9.3): per-tab desktop-site state; drives the toggle row when onToggleDesktop != null. */
     val isDesktop: Boolean = false,
     val isStartPage: Boolean = false,
+    val isShieldActive: Boolean = true,
 )
 
 /**
@@ -27,19 +28,22 @@ class PageMenuActions(
     val onNewTab: () -> Unit,
     val onFindInPage: () -> Unit,
     val onSetFavorite: () -> Unit,
+    val onResetFavorite: () -> Unit = {},
     val onAddBookmark: () -> Unit,
-    val onAddToHome: () -> Unit,
+    val onAddToHome: () -> Unit = {},
     val onCreateShortcut: () -> Unit,
     val onShare: () -> Unit,
     val onCopyLink: () -> Unit,
     val onOpenWith: () -> Unit,
-    val onSaveAs: () -> Unit,
+    val onSaveAs: () -> Unit = {},
     val onPrintPdf: () -> Unit,
     val onOpenDownloads: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onQuit: () -> Unit,
     /** P09 (9.3): per-tab desktop toggle. Null hides the row (e.g. start-page tabs). */
     val onToggleDesktop: (() -> Unit)? = null,
+    val onToggleShield: (() -> Unit)? = null,
+    val onOpenWhitelist: (() -> Unit)? = null,
 )
 
 /** Port of show_contextMenu_link targets. */

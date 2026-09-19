@@ -48,11 +48,21 @@ android {
             buildConfigField "String", "AD_UNIT_SETTINGS", '"ca-app-pub-3940256099942544/6300978111"'
         }
         release {
-            // P11 11.2: R8 shrinking on for the v2.0 release. GMA/Firebase consumer rules are
-            // bundled with their artifacts; add keep rules only if assembleRelease flags something.
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
         }
     }
 
@@ -75,7 +85,6 @@ dependencies {
     implementation 'com.google.firebase:firebase-perf:21.0.2'
     // firebase-storage removed in P11 (zero code references; feedback uses firebase-database).
     implementation 'com.google.firebase:firebase-database:21.0.0'
-    implementation 'com.google.firebase:firebase-inappmessaging-display:21.0.1'
     testImplementation 'junit:junit:4.13.2'
     // P10: real org.json on the unit-test classpath (android.jar's stub throws "not mocked").
     testImplementation 'org.json:json:20240303'
@@ -92,10 +101,6 @@ dependencies {
 
     implementation 'androidx.browser:browser:1.8.0'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-
-
-
-    implementation 'com.squareup.picasso:picasso:2.71828'
 
     // ---- UI rewrite (P00/P01/P02): Compose + Kotlin stack -----------------
     def composeBom = platform('androidx.compose:compose-bom:2024.09.03')

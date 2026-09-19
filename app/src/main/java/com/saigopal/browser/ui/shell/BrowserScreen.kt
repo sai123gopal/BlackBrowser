@@ -64,6 +64,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
@@ -103,6 +104,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.saigopal.browser.R
 import com.saigopal.browser.data.repo.BBSettings
+import com.saigopal.browser.data.repo.WhitelistKind
 import com.saigopal.browser.domain.GestureArea
 import com.saigopal.browser.domain.GestureDirection
 import com.saigopal.browser.domain.GestureRouter
@@ -123,6 +125,7 @@ import com.saigopal.browser.ui.screens.menu.LinkContextActions
 import com.saigopal.browser.ui.screens.menu.PageInfo
 import com.saigopal.browser.ui.screens.menu.PageMenuActions
 import com.saigopal.browser.ui.screens.menu.PageMenuSheet
+import com.saigopal.browser.ui.screens.onboarding.TutorialOverlay
 import com.saigopal.browser.ui.screens.overview.OverviewSegment
 import com.saigopal.browser.ui.screens.overview.OverviewSheet
 import com.saigopal.browser.ui.screens.start.StartPageScreen
@@ -157,6 +160,15 @@ fun BrowserScreen(
     val settings by container.settings.state.collectAsState()
     val tabs by container.tabs.tabs.collectAsState()
     val activeId by container.tabs.activeId.collectAsState()
+
+    var showTutorial by remember {
+        mutableStateOf(container.settings.isOnboardingCompleted() && !container.settings.isTutorialCompleted())
+    }
+
+    BackHandler(enabled = showTutorial) {
+        showTutorial = false
+        container.settings.setTutorialCompleted(true)
+    }
 
     // The pool lives in BrowserShellStore (keyed to the Activity), NOT in composition: route
     // switches to settings/games/feedback must not destroy tab WebViews — that was the
@@ -221,10 +233,14 @@ fun BrowserScreen(
     val activeTab = tabs.firstOrNull { it.id == activeId }
     val activeOnStartPage = activeTab == null || UrlInterpreter.isStartPage(activeTab.url)
 
-    // Hardware menu key → page menu (invoked from MainActivity's flipped branch).
+    // Hardware menu key → page menu and OS low-memory callbacks.
     DisposableEffect(Unit) {
         ShellActivityHolder.menuOpener = Runnable { controller.pageMenuVisible.value = true }
-        onDispose { ShellActivityHolder.menuOpener = null }
+        ShellActivityHolder.memoryTrimmer = { level -> pool.trimMemory(level) }
+        onDispose {
+            ShellActivityHolder.menuOpener = null
+            ShellActivityHolder.memoryTrimmer = null
+        }
     }
 
     // ---- find-in-page wiring ------------------------------------------------------------------
@@ -303,9 +319,29 @@ fun BrowserScreen(
         if (!activeOnStartPage && activeTab != null) {
             key(activeTab.id) {
                 AndroidView(
-                    factory = { pool.getOrCreate(activeTab.id).also { v ->
-                        (v.parent as? android.view.ViewGroup)?.removeView(v)
-                    } },
+                    factory = {
+                        pool.getOrCreate(activeTab.id).also { v ->
+                            (v.parent as? android.view.ViewGroup)?.removeView(v)
+                            pool.activate(activeTab.id)
+                            try {
+                                v.onResume()
+                            } catch (ignored: Exception) {}
+                            v.postInvalidate()
+                            val tabUrl = activeTab.url
+                            if (v.url.isNullOrBlank() || v.url == "about:blank") {
+                                if (!tabUrl.isNullOrBlank() && !com.saigopal.browser.domain.UrlInterpreter.isStartPage(tabUrl)) {
+                                    controller.loadInActive(tabUrl)
+                                }
+                            }
+                        }
+                    },
+                    update = { v ->
+                        pool.activate(activeTab.id)
+                        try {
+                            v.onResume()
+                        } catch (ignored: Exception) {}
+                        v.postInvalidate()
+                    },
                     onRelease = { v -> (v.parent as? android.view.ViewGroup)?.removeView(v) },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -325,6 +361,17 @@ fun BrowserScreen(
                 onOpenHistory = { controller.openOverview(OverviewSegment.HISTORY) },
                 onOpenTabs = { controller.openOverview(OverviewSegment.TABS) },
                 onOpenSettings = onOpenSettings,
+                onOpenDownloads = {
+                    runCatching {
+                        activity.startActivity(
+                            Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                },
+                onToggleIncognito = {
+                    controller.toggleActiveTabIncognito(!settings.incognitoActive)
+                },
             )
         }
 
@@ -405,17 +452,45 @@ fun BrowserScreen(
                         leadingIcon = if (url.startsWith("https")) Icons.Filled.Lock else Icons.Filled.Warning,
                         insecure = url.startsWith("http://"),
                         progress = controller.progress.intValue.takeIf { it < 100 },
-                        trailing = if (activeTab?.isDesktopMode == true) {
-                            {
-                                Icon(
-                                    Icons.Filled.Build,
-                                    contentDescription = stringResource(R.string.bb_menu_desktop_site),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.clickable(onClick = controller::toggleDesktopActive),
-                                )
+                        trailing = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val blocked = pool.get(activeId)?.blockedAdsCount ?: 0
+                                if (blocked > 0 && !activeOnStartPage) {
+                                    Surface(
+                                        shape = PillShape,
+                                        color = androidx.compose.ui.graphics.Color(0xFF00C853).copy(alpha = 0.18f),
+                                        modifier = Modifier.clickable { controller.pageMenuVisible.value = true },
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Security,
+                                                contentDescription = null,
+                                                tint = androidx.compose.ui.graphics.Color(0xFF00C853),
+                                                modifier = Modifier.size(12.dp),
+                                            )
+                                            Spacer(Modifier.width(2.dp))
+                                            Text(
+                                                text = "$blocked",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = androidx.compose.ui.graphics.Color(0xFF00C853),
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.width(4.dp))
+                                }
+                                if (activeTab?.isDesktopMode == true) {
+                                    Icon(
+                                        Icons.Filled.Build,
+                                        contentDescription = stringResource(R.string.bb_menu_desktop_site),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.clickable(onClick = controller::toggleDesktopActive),
+                                    )
+                                }
                             }
-                        } else {
-                            {}
                         },
                     )
                     IconButton(
@@ -557,6 +632,18 @@ fun BrowserScreen(
             state = sneakbarState,
             modifier = Modifier.align(Alignment.TopCenter),
         )
+
+        if (showTutorial) {
+            TutorialOverlay(
+                onDismiss = {
+                    showTutorial = false
+                    container.settings.setTutorialCompleted(true)
+                },
+                onOpenQuickSite = { url ->
+                    controller.loadInActive(url)
+                },
+            )
+        }
     }
 
     // ---- sheets -------------------------------------------------------------------------------------
@@ -582,6 +669,13 @@ fun BrowserScreen(
                 controller.overviewVisible.value = false
                 onOpenGames()
             },
+            onActivateTab = { id ->
+                controller.overviewVisible.value = false
+                controller.activateTab(id)
+            },
+            onCloseTab = { id ->
+                controller.closeTab(id)
+            },
         )
     }
 
@@ -591,16 +685,22 @@ fun BrowserScreen(
         if (activeOnStartPage) null else controller::toggleDesktopActive
 
     if (controller.pageMenuVisible.value) {
+        val activeUrl = activeTab?.url.orEmpty()
+        val activeWv = pool.get(activeId)
+        val isDomainWhite = activeUrl.isNotBlank() && container.whitelists.isWhitelisted(WhitelistKind.AD_BLOCK, activeUrl)
+        val isShieldActive = !isDomainWhite
+
         PageMenuSheet(
             page = PageInfo(
                 title = activeTab?.title.orEmpty(),
                 url = activeTab?.url.orEmpty(),
                 isSecure = (activeTab?.url ?: "").startsWith("https"),
-                blockedCount = 0,
+                blockedCount = activeWv?.blockedAdsCount ?: 0,
                 // P09: the header reflects the ACTIVE TAB's mode, not the new-tab default.
                 isIncognito = activeTab?.isIncognito == true,
                 isDesktop = activeTab?.isDesktopMode == true,
                 isStartPage = activeOnStartPage,
+                isShieldActive = isShieldActive,
             ),
             actions = PageMenuActions(
                 onNewTab = {
@@ -616,6 +716,10 @@ fun BrowserScreen(
                         container.settings.update { s -> s.copy(favoriteUrl = u) }
                         sneakbarState.show("Saved as favorite", Icons.Filled.Star)
                     }
+                },
+                onResetFavorite = {
+                    container.settings.update { s -> s.copy(favoriteUrl = "file:///android_asset/Newtab.html") }
+                    sneakbarState.show("Favorite reset to default", Icons.Filled.Refresh)
                 },
                 onAddBookmark = {
                     activeTab?.let { t ->
@@ -674,6 +778,24 @@ fun BrowserScreen(
                         toggleDesktopAction.invoke()
                         sneakbarState.show("Desktop mode toggled", Icons.Filled.Build)
                     }
+                },
+                onToggleShield = {
+                    scope.launch {
+                        val domain = container.urlInterpreter.domainOf(activeUrl)
+                        if (domain.isNotBlank()) {
+                            if (container.whitelists.isWhitelisted(WhitelistKind.AD_BLOCK, activeUrl)) {
+                                container.whitelists.removeDomain(WhitelistKind.AD_BLOCK, domain)
+                                sneakbarState.show("Shield active on $domain", Icons.Filled.Security)
+                            } else {
+                                container.whitelists.addDomain(WhitelistKind.AD_BLOCK, domain)
+                                sneakbarState.show("Shield paused on $domain", Icons.Filled.Security)
+                            }
+                            activeWv?.reload()
+                        }
+                    }
+                },
+                onOpenWhitelist = {
+                    activity.startActivity(Intent(activity, com.saigopal.browser.activity.WhitelistAdBlock::class.java))
                 },
             ),
             onDismiss = { controller.pageMenuVisible.value = false },
@@ -863,37 +985,39 @@ private fun copyToClipboard(context: Context, text: String) {
     cm.setPrimaryClip(ClipData.newPlainText("url", text))
 }
 
-/** Home/start-page button carrying NAV_BUTTON-area gestures; placement follows navPosition. */
+/** New tab button carrying NAV_BUTTON-area gestures; placement follows navPosition. */
 @Composable
 private fun RowScope.NavButton(
     controller: ShellController,
     settings: BBSettings,
 ) {
     IconButton(
-        onClick = { controller.loadInActive(controller.startPageUrl()) },
-        modifier = Modifier.chromeGestures(controller, settings),
+        onClick = { controller.newTab(controller.startPageUrl(), foreground = true) },
+        modifier = Modifier.chromeGestures(controller, settings, GestureArea.NAV_BUTTON),
     ) {
         Icon(
-            Icons.Filled.Home,
-            contentDescription = stringResource(R.string.app_name),
+            Icons.Filled.Add,
+            contentDescription = "New Tab",
             tint = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
 
 /**
- * Swipe gestures on a chrome control routed through GestureRouter with TOOLBAR-area codes.
+ * Swipe gestures on a chrome control routed through GestureRouter with the specified area codes.
  * One gesture per drag: after firing, remaining movement is consumed until drag end.
  */
 @Composable
 private fun Modifier.chromeGestures(
     controller: ShellController,
     settings: BBSettings,
+    area: GestureArea = GestureArea.TOOLBAR,
 ): Modifier {
+    if (!settings.gesturesEnabled) return this
     var fired by remember { mutableStateOf(false) }
     var accumulated by remember { mutableStateOf(Offset.Zero) }
     return this.then(
-        Modifier.pointerInput(controller) {
+        Modifier.pointerInput(controller, area) {
             val slopPx = viewConfiguration.touchSlop * 2f
             detectDragGestures(
                 onDragEnd = { fired = false; accumulated = Offset.Zero },
@@ -911,7 +1035,7 @@ private fun Modifier.chromeGestures(
                     } else {
                         if (next.y > 0) GestureDirection.DOWN else GestureDirection.UP
                     }
-                    val action = GestureRouter.actionFor(settings, GestureArea.TOOLBAR, direction)
+                    val action = GestureRouter.actionFor(settings, area, direction)
                     GestureRouter.dispatch({ controller.performGesture(it) }, action)
                     fired = true
                     change.consume()

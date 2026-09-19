@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -243,6 +244,22 @@ fun PageMenuSheet(
                 }
             }
 
+            // ---- AdBlock & Privacy Shield Card (Webpages only) --------------------------------------
+            if (!page.isStartPage) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    AdBlockShieldRow(
+                        isShieldActive = page.isShieldActive,
+                        blockedCount = page.blockedCount,
+                        onToggleShield = actions.onToggleShield,
+                        onOpenWhitelist = actions.onOpenWhitelist,
+                    )
+                }
+            }
+
             // ---- Incognito Card ---------------------------------------------------------------------
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -267,15 +284,15 @@ fun PageMenuSheet(
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         MenuRowItem(
-                            icon = Icons.Filled.FavoriteBorder,
-                            label = stringResource(R.string.menu_save_bookmark),
-                            onClick = { onDismiss(); actions.onAddBookmark() },
+                            icon = Icons.Filled.Refresh,
+                            label = "Reset Favorite",
+                            onClick = { onDismiss(); actions.onResetFavorite() },
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         MenuRowItem(
-                            icon = Icons.Filled.Home,
-                            label = stringResource(R.string.menu_save_home),
-                            onClick = { onDismiss(); actions.onAddToHome() },
+                            icon = Icons.Filled.FavoriteBorder,
+                            label = stringResource(R.string.menu_save_bookmark),
+                            onClick = { onDismiss(); actions.onAddBookmark() },
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         MenuRowItem(
@@ -303,12 +320,6 @@ fun PageMenuSheet(
                             icon = Icons.Filled.ExitToApp,
                             label = stringResource(R.string.menu_open_with),
                             onClick = { onDismiss(); actions.onOpenWith() },
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                        MenuRowItem(
-                            icon = Icons.Filled.Create,
-                            label = stringResource(R.string.menu_save_as),
-                            onClick = { onDismiss(); actions.onSaveAs() },
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         MenuRowItem(
@@ -386,6 +397,79 @@ private fun QuickActionPill(
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdBlockShieldRow(
+    isShieldActive: Boolean,
+    blockedCount: Int,
+    onToggleShield: (() -> Unit)?,
+    onOpenWhitelist: (() -> Unit)?,
+) {
+    var active by remember(isShieldActive) { mutableStateOf(isShieldActive) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = BBSpace.md, vertical = BBSpace.sm),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = if (active) androidx.compose.ui.graphics.Color(0xFF00C853).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.Security,
+                        contentDescription = null,
+                        tint = if (active) androidx.compose.ui.graphics.Color(0xFF00C853) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.size(BBSpace.sm))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "AdBlock & Privacy Shield",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = if (active) {
+                        if (blockedCount > 0) "$blockedCount ads & trackers blocked" else "Shield active • Clean browsing"
+                    } else {
+                        "Shield paused on this site"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (active && blockedCount > 0) androidx.compose.ui.graphics.Color(0xFF00C853) else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = active,
+                onCheckedChange = { on ->
+                    active = on
+                    onToggleShield?.invoke()
+                },
+            )
+        }
+
+        if (onOpenWhitelist != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Manage Allowed Sites →",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable(onClick = onOpenWhitelist)
+                    .padding(vertical = 4.dp),
             )
         }
     }

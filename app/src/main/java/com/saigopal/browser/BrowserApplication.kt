@@ -27,10 +27,12 @@ class AppContainer(app: Application) {
     }
 }
 
-class BrowserApplication : Application() {
+class BrowserApplication : Application(), coil.ImageLoaderFactory {
 
     lateinit var container: AppContainer
         private set
+
+    private var imageLoaderRef: coil.ImageLoader? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -39,4 +41,35 @@ class BrowserApplication : Application() {
         // activities). Async by nature; nothing blocks first frame.
         com.saigopal.browser.ui.ads.AdsController.warmUp(this)
     }
+
+    override fun newImageLoader(): coil.ImageLoader {
+        return imageLoaderRef ?: coil.ImageLoader.Builder(this)
+            .memoryCache {
+                coil.memory.MemoryCache.Builder(this)
+                    // Cap at 15% heap on low-end 4GB devices instead of 25% default
+                    .maxSizePercent(0.15)
+                    .build()
+            }
+            .diskCache {
+                coil.disk.DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(25L * 1024 * 1024)
+                    .build()
+            }
+            .bitmapConfig(android.graphics.Bitmap.Config.RGB_565)
+            .crossfade(true)
+            .respectCacheHeaders(false)
+            .build().also { imageLoaderRef = it }
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        imageLoaderRef?.memoryCache?.trimMemory(level)
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        imageLoaderRef?.memoryCache?.clear()
+    }
 }
+

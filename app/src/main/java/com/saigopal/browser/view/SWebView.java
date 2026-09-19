@@ -203,7 +203,29 @@ public class SWebView extends WebView implements AlbumController {
             webSettings.setDomStorageEnabled(false);
         }
 
+        resetBlockedAdsCount();
+        this.currentUrl = (url != null) ? url.trim() : "";
+        this.originalUrl = (url != null) ? url.trim() : "";
         super.loadUrl(BrowserUnit.queryWrapper(context, url.trim()), getRequestHeaders());
+    }
+
+    private volatile String currentUrl = "";
+    private volatile String originalUrl = "";
+
+    public String getCurrentUrl() {
+        return currentUrl != null ? currentUrl : "";
+    }
+
+    public void setCurrentUrl(String url) {
+        this.currentUrl = url != null ? url : "";
+    }
+
+    public String getSafeOriginalUrl() {
+        return originalUrl != null ? originalUrl : "";
+    }
+
+    public void setSafeOriginalUrl(String url) {
+        this.originalUrl = url != null ? url : "";
     }
 
     @Override
@@ -215,10 +237,39 @@ public class SWebView extends WebView implements AlbumController {
         album.setAlbumTitle(title);
     }
 
+    private final java.util.concurrent.atomic.AtomicInteger blockedAdsCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+    public int getBlockedAdsCount() {
+        return blockedAdsCount.get();
+    }
+
+    public void incrementBlockedAdsCount() {
+        blockedAdsCount.incrementAndGet();
+    }
+
+    public void resetBlockedAdsCount() {
+        blockedAdsCount.set(0);
+    }
+
+    public void enableAdBlock(boolean enable) {
+        if (webViewClient != null) {
+            webViewClient.enableAdBlock(enable);
+        }
+    }
+
+    public void trimMemory(int level) {
+        try {
+            clearCache(false);
+        } catch (Exception ignored) {}
+    }
+
     @Override
     public synchronized void activate() {
         requestFocus();
         foreground = true;
+        try {
+            onResume();
+        } catch (Exception ignored) {}
         album.activate();
     }
 
@@ -226,6 +277,9 @@ public class SWebView extends WebView implements AlbumController {
     public synchronized void deactivate() {
         clearFocus();
         foreground = false;
+        try {
+            onPause();
+        } catch (Exception ignored) {}
         album.deactivate();
     }
 

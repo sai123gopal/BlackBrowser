@@ -68,7 +68,7 @@ fun TabsSegment(
         horizontalArrangement = Arrangement.spacedBy(BBSpace.sm),
         verticalArrangement = Arrangement.spacedBy(BBSpace.sm),
     ) {
-        items(tabs, key = { it.id }) { tab ->
+        items(tabs, key = { it.id }, contentType = { "tab_card" }) { tab ->
             DismissibleTabCard(
                 tab = tab,
                 isActive = tab.id == activeId,
@@ -76,7 +76,7 @@ fun TabsSegment(
                 onClose = { onClose(tab.id) },
             )
         }
-        item(key = "new_tab") {
+        item(key = "new_tab", contentType = "new_tab") {
             NewTabCard(onClick = onNewTab)
         }
     }
@@ -306,27 +306,12 @@ private fun TabCard(
 
                         // Central website preview graphic / favicon
                         Spacer(Modifier.weight(1f))
-                        Box(
-                            modifier = Modifier
-                                .size(52.dp)
-                                .clip(RoundedCornerShape(14.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            com.saigopal.browser.ui.design.components.LetterTile(
-                                label = tab.title,
-                                url = tab.url,
-                                tileSize = 52.dp,
-                            )
-                            if (!tab.url.isNullOrEmpty()) {
-                                coil.compose.SubcomposeAsyncImage(
-                                    model = "https://www.google.com/s2/favicons?sz=128&domain_url=${tab.url}",
-                                    contentDescription = null,
-                                    modifier = Modifier.size(36.dp),
-                                    loading = { },
-                                    error = { },
-                                )
-                            }
-                        }
+                        com.saigopal.browser.ui.design.components.BBFavicon(
+                            label = tab.title,
+                            url = tab.url,
+                            size = 52.dp,
+                            shape = RoundedCornerShape(14.dp),
+                        )
 
                         Spacer(Modifier.height(6.dp))
                         Text(

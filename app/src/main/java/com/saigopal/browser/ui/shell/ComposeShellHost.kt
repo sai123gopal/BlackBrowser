@@ -31,6 +31,10 @@ object ShellActivityHolder {
     @Volatile
     var menuOpener: Runnable? = null
 
+    /** Set by BrowserScreen; invoked by MainActivity.onTrimMemory. */
+    @Volatile
+    var memoryTrimmer: ((Int) -> Unit)? = null
+
     fun post(intent: Intent?) {
         _intents.value = intent
     }

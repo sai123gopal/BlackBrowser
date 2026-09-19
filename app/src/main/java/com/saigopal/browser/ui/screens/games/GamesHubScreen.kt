@@ -3,18 +3,23 @@ package com.saigopal.browser.ui.screens.games
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -22,9 +27,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -38,9 +46,8 @@ import com.saigopal.browser.view.SWebView
  * Hosts its own SWebView (fully self-initializing) instead of a tab, so game sessions never
  * pollute browser history or the tab strip.
  *
- * TODO(P05/P09): per-tab ad-block exemption declared via TabState — plug-in point.
- * The hub intentionally keeps SWebView's default engine settings; do NOT mutate global
- * ad-block/JS preferences from here (that would leak into normal browsing).
+ * Ad blocking is explicitly disabled for Gamezop so that games, rewarded video ads, and
+ * game monetization load and run without interruption.
  */
 
 /** Legacy Gamezop portal entry point. */
@@ -60,7 +67,10 @@ object GamesHubStore {
     fun obtain(context: android.content.Context): SWebView {
         holder?.let { (owned, view) -> if (owned === context) return view }
         holder?.second?.destroy()
-        return SWebView(context).apply { loadUrl(GAMES_URL) }.also { holder = context to it }
+        return SWebView(context).apply {
+            enableAdBlock(false)
+            loadUrl(GAMES_URL)
+        }.also { holder = context to it }
     }
 
     fun release(context: android.content.Context) {
@@ -135,29 +145,58 @@ fun GamesHubScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = BBSpace.xs),
-            verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF090D0F)),
+    ) {
+        Surface(
+            color = Color(0xFF101619),
+            tonalElevation = 4.dp,
+            border = BorderStroke(1.dp, Color(0xFF1E282D)),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.abc_action_bar_up_description),
-                )
-            }
-            Text(
-                text = stringResource(R.string.bb_start_games_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = { onOpenExternally(GAMES_URL) }) {
-                Icon(
-                    Icons.Filled.ExitToApp,
-                    contentDescription = stringResource(R.string.menu_open_with),
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.abc_action_bar_up_description),
+                        tint = Color.White,
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Gamezop",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                    Text(
+                        text = "Instant Web Games",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF20E398),
+                    )
+                }
+                IconButton(onClick = { webView.reload() }) {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = "Reload",
+                        tint = Color(0xFFB0BAC0),
+                    )
+                }
+                IconButton(onClick = { onOpenExternally(GAMES_URL) }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = stringResource(R.string.menu_open_with),
+                        tint = Color(0xFFB0BAC0),
+                    )
+                }
             }
         }
         AndroidView(
@@ -166,6 +205,5 @@ fun GamesHubScreen(
                 .weight(1f)
                 .fillMaxWidth(),
         )
-        Spacer(Modifier.padding(bottom = BBSpace.xxs))
     }
 }

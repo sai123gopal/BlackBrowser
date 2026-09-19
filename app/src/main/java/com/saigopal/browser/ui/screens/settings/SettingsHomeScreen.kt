@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ColorLens
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Laptop
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Palette
@@ -281,7 +283,7 @@ fun SettingsHomeScreen(
         HomeDialog.NavPosition -> {
             val positionNames = NavPosition.entries.map { navPositionLabel(it) }
             SettingsChoiceDialog(
-                title = stringResource(R.string.setting_title_nav_pos),
+                title = "New Tab Button Position",
                 options = positionNames,
                 selectedIndex = NavPosition.entries.indexOf(settings.navPosition),
                 label = { it },
@@ -437,11 +439,12 @@ private fun SettingsSections(
         )
         SettingsDivider()
         ModernSettingsRow(
-            title = stringResource(R.string.setting_title_nav_pos),
+            title = "New Tab Position",
+            subtitle = "Choose placement of the New Tab (+) button on bottom bar",
             trailingText = navPositionLabel(settings.navPosition),
-            icon = Icons.Filled.Navigation,
-            iconContainerColor = Color(0xFFECEFF1),
-            iconColor = Color(0xFF546E7A),
+            icon = Icons.Filled.Add,
+            iconContainerColor = Color(0xFFE8F5E9),
+            iconColor = Color(0xFF2E7D32),
             onClick = { showDialog(HomeDialog.NavPosition) },
         )
         SettingsDivider()
@@ -467,6 +470,33 @@ private fun SettingsSections(
 
     // 4. Privacy & Filter Group
     SettingsCardGroup(title = "Privacy & Filtering") {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val allTimeBlocked = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
+            .getInt("stats_ads_blocked", 0)
+
+        ModernSettingsSwitchRow(
+            title = "AdBlock & Privacy Shield",
+            subtitle = if (settings.adBlockEnabled) {
+                if (allTimeBlocked > 0) "$allTimeBlocked ads & trackers blocked all-time" else "Active • Ads & trackers blocked"
+            } else {
+                "Shield is disabled globally"
+            },
+            icon = Icons.Filled.Security,
+            iconContainerColor = Color(0xFFE8F5E9),
+            iconColor = Color(0xFF00C853),
+            checked = settings.adBlockEnabled,
+            onCheckedChange = { v -> update { s -> s.copy(adBlockEnabled = v) } },
+        )
+        SettingsDivider()
+        ModernSettingsRow(
+            title = "Exempt Sites / Whitelist",
+            subtitle = "Websites allowed to show ads and run scripts",
+            icon = Icons.Filled.List,
+            iconContainerColor = Color(0xFFE0F2F1),
+            iconColor = Color(0xFF00897B),
+            onClick = { onOpenRoute(SettingsRoute.WHITELIST_ADBLOCK.id) },
+        )
+        SettingsDivider()
         ModernSettingsRow(
             title = stringResource(R.string.setting_title_start_control),
             subtitle = stringResource(R.string.setting_summary_start_control),

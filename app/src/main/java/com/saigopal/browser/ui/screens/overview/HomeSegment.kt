@@ -2,19 +2,33 @@ package com.saigopal.browser.ui.screens.overview
 
 import android.content.SharedPreferences
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,9 +38,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.saigopal.browser.R
@@ -34,18 +53,15 @@ import com.saigopal.browser.domain.BBRecord
 import com.saigopal.browser.ui.design.components.BBCard
 import com.saigopal.browser.ui.design.components.BBIconTile
 import com.saigopal.browser.ui.design.components.BBTextFieldPill
-import com.saigopal.browser.ui.design.components.SectionHeader
 import com.saigopal.browser.ui.design.theme.BBSpace
 import com.saigopal.browser.ui.di.rememberContainer
 import kotlinx.coroutines.launch
 
 /*
- * Home segment (P04 §4.4): DB start-site tiles ("Pinned") + the 8 SharedPreferences quick tiles,
- * visually grouped until P07 unifies them. Quick-tile keys {i}_name/{i}_url (i = 0..7) are legacy
- * stored data — written with commit() parity so old code reading them never sees a gap.
+ * Home segment: Pinned start-site tiles and quick navigation links.
+ * Modernized with clean cards, direct click & long-press handling, and zero logo/letter overlap.
  */
 
-/** One quick tile read from prefs; defaults mirror CustomGridViewAdapter exactly. */
 internal data class QuickTile(val index: Int, val name: String, val url: String)
 
 internal fun readQuickTiles(prefs: SharedPreferences): List<QuickTile> {
@@ -72,22 +88,6 @@ internal fun readQuickTiles(prefs: SharedPreferences): List<QuickTile> {
     }
 }
 
-/**
- * Transparent click surface over a tile so both tap and long-press work even though the
- * underlying component only exposes onClick.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LongPressTile(
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    Box(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)) {
-        content()
-    }
-}
-
 @Composable
 fun HomeSegment(
     refreshTick: Int,
@@ -109,51 +109,96 @@ fun HomeSegment(
     val quickTiles = remember(refreshTick) { readQuickTiles(prefs) }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(88.dp),
+        columns = GridCells.Adaptive(76.dp),
         contentPadding = PaddingValues(BBSpace.md),
+        horizontalArrangement = Arrangement.spacedBy(BBSpace.xs),
+        verticalArrangement = Arrangement.spacedBy(BBSpace.xs),
     ) {
-        item(key = "games_card", span = { GridItemSpan(maxLineSpan) }) {
-            BBCard(Modifier.padding(bottom = BBSpace.sm), onClick = onOpenGames) {
-                Column(Modifier.padding(BBSpace.md)) {
-                    Text(
-                        "Games",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                    Text(
-                        stringResource(R.string.bb_overview_games_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        // Pinned Sites Section
         if (pinned.isNotEmpty()) {
             item(key = "pinned_header", span = { GridItemSpan(maxLineSpan) }) {
-                SectionHeader("Pinned")
-            }
-            itemsIndexed(pinned, key = { index, tile -> "pinned_${tile.url}_$index" }) { _, tile ->
-                LongPressTile(
-                    onClick = { onLoadUrl(tile.url, false) },
-                    onLongClick = { actionForTile = tile },
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = BBSpace.xs, bottom = BBSpace.xxs),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    BBIconTile(label = tile.title, url = tile.url, onClick = {})
+                    Text(
+                        text = "Pinned Sites",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.size(20.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = "${pinned.size}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
+            itemsIndexed(pinned, key = { index, tile -> "pinned_${tile.url}_$index" }) { _, tile ->
+                BBIconTile(
+                    label = tile.title,
+                    url = tile.url,
+                    onClick = { onLoadUrl(tile.url, false) },
+                    onLongClick = { actionForTile = tile },
+                )
+            }
         }
+
+        // Gamezop Banner (Below Pinned Sites)
+        item(key = "gamezop_banner", span = { GridItemSpan(maxLineSpan) }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = BBSpace.xs)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(onClick = onOpenGames),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.img_games),
+                    contentDescription = "Gamezop - Play Games",
+                    contentScale = ContentScale.FillWidth,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(960f / 368f),
+                )
+            }
+        }
+
+        // Quick Links Section
         item(key = "quick_header", span = { GridItemSpan(maxLineSpan) }) {
-            SectionHeader("Quick links")
+            Text(
+                text = "Quick Links",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = BBSpace.sm, bottom = BBSpace.xxs),
+            )
         }
         items(quickTiles, key = { "quick_${it.index}" }) { tile ->
-            LongPressTile(
+            BBIconTile(
+                label = tile.name,
+                url = tile.url,
                 onClick = { onLoadUrl(tile.url, false) },
-                onLongClick = {
-                    // Legacy parity: only quick tiles get the edit dialog (same keys, same toasts).
-                    editingQuick = tile
-                },
-            ) {
-                BBIconTile(label = tile.name, url = tile.url, onClick = {})
-            }
+                onLongClick = { editingQuick = tile },
+            )
         }
     }
 
@@ -184,8 +229,8 @@ fun HomeSegment(
             initialName = tile.name,
             initialUrl = tile.url,
             onSave = { name, url ->
-                prefs.edit().putString("${tile.index}_name", name).commit()
-                prefs.edit().putString("${tile.index}_url", url).commit()
+                prefs.edit().putString("${tile.index}_name", name).apply()
+                prefs.edit().putString("${tile.index}_url", url).apply()
                 Toast.makeText(context, "saved", Toast.LENGTH_SHORT).show()
                 editingQuick = null
                 onChanged()
@@ -224,7 +269,6 @@ private fun QuickTileEditDialog(
         confirmButton = {
             TextButton(onClick = {
                 if (name.isBlank() || url.isBlank()) {
-                    // Verbatim legacy toast.
                     Toast.makeText(context, "Enter all details", Toast.LENGTH_SHORT).show()
                 } else {
                     onSave(name.trim(), url.trim())

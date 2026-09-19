@@ -327,7 +327,6 @@ public class HelperUnit {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.getSettings(), darkeningAllowed);
         }
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
     }
 
     @SuppressWarnings("unchecked")

@@ -146,27 +146,12 @@ private fun HistoryRow(
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         // Website image / favicon tile
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            LetterTile(
-                label = entry.title,
-                url = entry.url,
-                tileSize = 40.dp,
-            )
-            if (entry.url.isNotBlank()) {
-                SubcomposeAsyncImage(
-                    model = "https://www.google.com/s2/favicons?sz=64&domain_url=${entry.url}",
-                    contentDescription = null,
-                    modifier = Modifier.size(26.dp),
-                    loading = { },
-                    error = { },
-                )
-            }
-        }
+        com.saigopal.browser.ui.design.components.BBFavicon(
+            label = entry.title,
+            url = entry.url,
+            size = 40.dp,
+            shape = RoundedCornerShape(10.dp),
+        )
 
         Spacer(Modifier.width(BBSpace.sm))
 

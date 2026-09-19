@@ -44,6 +44,14 @@ class WebViewPool(
         activeTabId = tabId
     }
 
+    fun trimMemory(level: Int) {
+        webViews.forEach { (id, view) ->
+            if (id != activeTabId) {
+                view.trimMemory(level)
+            }
+        }
+    }
+
     fun destroy(tabId: Long) {
         webViews.remove(tabId)?.destroy()
         if (activeTabId == tabId) activeTabId = null
@@ -55,3 +63,4 @@ class WebViewPool(
         activeTabId = null
     }
 }
+

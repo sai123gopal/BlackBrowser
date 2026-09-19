@@ -57,6 +57,10 @@ public class SWebViewClient extends WebViewClient {
         this.enable = enable;
     }
 
+    public AdBlock getAdBlock() {
+        return adBlock;
+    }
+
     public SWebViewClient(SWebView sWebView) {
         super();
         this.sWebView = sWebView;
@@ -69,15 +73,35 @@ public class SWebViewClient extends WebViewClient {
     }
 
 
+    private volatile String currentPageUrl = "";
+
     @Override
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
+        this.currentPageUrl = (url != null) ? url : "";
+        sWebView.setCurrentUrl(this.currentPageUrl);
+        try {
+            String orig = view.getOriginalUrl();
+            if (orig != null) {
+                sWebView.setSafeOriginalUrl(orig);
+            }
+        } catch (Throwable ignored) {}
         sWebView.update(15);
     }
 
     @Override
     public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
+        if (url != null && !url.isEmpty()) {
+            this.currentPageUrl = url;
+            sWebView.setCurrentUrl(url);
+            try {
+                String orig = view.getOriginalUrl();
+                if (orig != null) {
+                    sWebView.setSafeOriginalUrl(orig);
+                }
+            } catch (Throwable ignored) {}
+        }
         sWebView.update(100);
 
         boolean isInco = sp.getBoolean("IsIncognito",false);
@@ -104,6 +128,15 @@ public class SWebViewClient extends WebViewClient {
     }
 
     @Override
+    public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+        super.doUpdateVisitedHistory(view, url, isReload);
+        if (url != null && !url.isEmpty()) {
+            this.currentPageUrl = url;
+            sWebView.setCurrentUrl(url);
+        }
+    }
+
+    @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
         final Uri uri = Uri.parse(url);
         return handleUri(view, uri);
@@ -125,7 +158,9 @@ public class SWebViewClient extends WebViewClient {
 
         CookieManager manager = CookieManager.getInstance();
 
-        SWebView.setDesktopMode(webView,true,webView.getUrl());
+        if (com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            SWebView.setDesktopMode(webView, true, currentPageUrl);
+        }
 
         if (sp.getBoolean("IsIncognito",false)){
             manager.setAcceptCookie(false);
@@ -178,27 +213,94 @@ public class SWebViewClient extends WebViewClient {
         return true;//do nothing in other cases
     }
 
+    private static final WebResourceResponse EMPTY_RESPONSE = new WebResourceResponse(
+            BrowserUnit.MIME_TYPE_TEXT_PLAIN,
+            BrowserUnit.URL_ENCODING,
+            new ByteArrayInputStream(new byte[0])
+    );
+
+    private boolean isGamezopContext(String pageUrl, String requestUrl) {
+        if (pageUrl != null && pageUrl.toLowerCase().contains("gamezop.com")) {
+            return true;
+        }
+        if (requestUrl != null && requestUrl.toLowerCase().contains("gamezop.com")) {
+            return true;
+        }
+        String current = sWebView.getCurrentUrl();
+        if (current != null && current.toLowerCase().contains("gamezop.com")) {
+            return true;
+        }
+        String orig = sWebView.getSafeOriginalUrl();
+        if (orig != null && orig.toLowerCase().contains("gamezop.com")) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-        if (enable && !white && adBlock.isAd(url)) {
-            return new WebResourceResponse(
-                    BrowserUnit.MIME_TYPE_TEXT_PLAIN,
-                    BrowserUnit.URL_ENCODING,
-                    new ByteArrayInputStream("".getBytes())
-            );
+        if (url == null) {
+            return super.shouldInterceptRequest(view, url);
+        }
+        String pageUrl = this.currentPageUrl;
+        if (pageUrl == null || pageUrl.isEmpty()) {
+            pageUrl = sWebView.getCurrentUrl();
+        }
+        if (isGamezopContext(pageUrl, url)) {
+            return super.shouldInterceptRequest(view, url);
+        }
+        if (enable && !white && sp.getBoolean(context.getString(R.string.sp_ad_block), true)) {
+            if (pageUrl != null && !pageUrl.isEmpty() && adBlock.isWhite(pageUrl)) {
+                return super.shouldInterceptRequest(view, url);
+            }
+            if (adBlock.isAd(url)) {
+                sWebView.incrementBlockedAdsCount();
+                synchronized (SWebViewClient.class) {
+                    int allTime = sp.getInt("stats_ads_blocked", 0);
+                    sp.edit().putInt("stats_ads_blocked", allTime + 1).apply();
+                }
+                return EMPTY_RESPONSE;
+            }
         }
         return super.shouldInterceptRequest(view, url);
     }
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-        if (enable && !white && adBlock.isAd(request.getUrl().toString())) {
-            return new WebResourceResponse(
-                    BrowserUnit.MIME_TYPE_TEXT_PLAIN,
-                    BrowserUnit.URL_ENCODING,
-                    new ByteArrayInputStream("".getBytes())
-            );
+        if (request == null || request.getUrl() == null) {
+            return super.shouldInterceptRequest(view, request);
+        }
+
+        // Never intercept or block the main document itself
+        if (request.isForMainFrame()) {
+            String mainUrl = request.getUrl().toString();
+            this.currentPageUrl = mainUrl;
+            sWebView.setCurrentUrl(mainUrl);
+            return super.shouldInterceptRequest(view, request);
+        }
+
+        String reqUrl = request.getUrl().toString();
+        String pageUrl = this.currentPageUrl;
+        if (pageUrl == null || pageUrl.isEmpty()) {
+            pageUrl = sWebView.getCurrentUrl();
+        }
+        if (isGamezopContext(pageUrl, reqUrl)) {
+            return super.shouldInterceptRequest(view, request);
+        }
+
+        if (enable && !white && sp.getBoolean(context.getString(R.string.sp_ad_block), true)) {
+            if (pageUrl != null && !pageUrl.isEmpty() && adBlock.isWhite(pageUrl)) {
+                return super.shouldInterceptRequest(view, request);
+            }
+            if (adBlock.isAd(reqUrl)) {
+                sWebView.incrementBlockedAdsCount();
+                synchronized (SWebViewClient.class) {
+                    int allTime = sp.getInt("stats_ads_blocked", 0);
+                    sp.edit().putInt("stats_ads_blocked", allTime + 1).apply();
+                }
+                return EMPTY_RESPONSE;
+            }
         }
         return super.shouldInterceptRequest(view, request);
     }

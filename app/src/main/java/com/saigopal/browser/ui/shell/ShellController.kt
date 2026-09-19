@@ -361,6 +361,18 @@ class ShellController(
         container.tabs.activate(id)
         pool.activate(id)
         applyIncognitoCookiePolicy()
+        val tab = container.tabs.tabs.value.firstOrNull { it.id == id }
+        if (tab != null && !com.saigopal.browser.domain.UrlInterpreter.isStartPage(tab.url.orEmpty())) {
+            val wv = pool.get(id)
+            if (wv == null || wv.url.isNullOrBlank() || wv.url == "about:blank") {
+                tab.url?.let(::loadIntoActiveIfReal)
+            } else {
+                try {
+                    wv.onResume()
+                } catch (ignored: Exception) {}
+                wv.postInvalidate()
+            }
+        }
     }
 
     fun reload() {

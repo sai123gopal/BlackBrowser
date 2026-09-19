@@ -1,25 +1,30 @@
 package com.saigopal.browser.ui.screens.settings
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.saigopal.browser.R
 import com.saigopal.browser.data.repo.BBSettings
 import com.saigopal.browser.domain.GestureAction
 import com.saigopal.browser.domain.GestureArea
 import com.saigopal.browser.domain.GestureDirection
-import com.saigopal.browser.ui.design.components.SectionHeader
-import com.saigopal.browser.ui.design.components.SwitchRow
 import com.saigopal.browser.ui.di.rememberContainer
 
 /*
- * Gestures section (legacy preference_gesture.xml). The stored values are the legacy codes
- * "01".."10" — they ride in GestureAction, never renumbered. Each direction row opens the same
- * 10-action picker the old ListPreference offered.
+ * Gestures section: Modern Jetpack Compose screen for configuring swipe actions on the
+ * Address Bar and New Tab (+) button, along with an overview of built-in touch gestures.
  */
 @Composable
 fun GesturesSection(onBack: () -> Unit) {
@@ -32,80 +37,139 @@ fun GesturesSection(onBack: () -> Unit) {
     }
 
     SettingsScaffold(title = stringResource(R.string.setting_gestures), onBack = onBack) {
-        SwitchRow(
-            title = stringResource(R.string.setting_gestures_use_title),
-            subtitle = stringResource(R.string.setting_gestures_use_summary),
-            checked = settings.gesturesEnabled,
-            onCheckedChange = { v -> update { s -> s.copy(gesturesEnabled = v) } },
-        )
+        // Master switch
+        SettingsCardGroup(title = "Controls") {
+            ModernSettingsSwitchRow(
+                title = stringResource(R.string.setting_gestures_use_title),
+                subtitle = if (settings.gesturesEnabled) {
+                    "Swipe gestures active on address bar & New Tab button"
+                } else {
+                    "Gestures are currently disabled"
+                },
+                icon = Icons.Filled.TouchApp,
+                iconContainerColor = Color(0xFFF3E5F5),
+                iconColor = Color(0xFF9C27B0),
+                checked = settings.gesturesEnabled,
+                onCheckedChange = { v -> update { s -> s.copy(gesturesEnabled = v) } },
+            )
+        }
 
-        SectionHeader(stringResource(R.string.setting_title_toolbar))
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.TOOLBAR,
-            direction = GestureDirection.UP,
-            label = stringResource(R.string.setting_gesture_up),
-            onPick = { picking = it },
-        )
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.TOOLBAR,
-            direction = GestureDirection.DOWN,
-            label = stringResource(R.string.setting_gesture_down),
-            onPick = { picking = it },
-        )
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.TOOLBAR,
-            direction = GestureDirection.LEFT,
-            label = stringResource(R.string.setting_gesture_left),
-            onPick = { picking = it },
-        )
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.TOOLBAR,
-            direction = GestureDirection.RIGHT,
-            label = stringResource(R.string.setting_gesture_right),
-            onPick = { picking = it },
-        )
+        // Built-in touch shortcuts
+        SettingsCardGroup(title = "Built-in Touch Shortcuts") {
+            ModernSettingsRow(
+                title = "Swipe Pill to Switch Tabs",
+                subtitle = "Swipe horizontally along the bottom navigation bar to swiftly slide between adjacent open tabs.",
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                iconContainerColor = Color(0xFFE8F5E9),
+                iconColor = Color(0xFF2E7D32),
+                onClick = {},
+            )
+            SettingsDivider()
+            ModernSettingsRow(
+                title = "Auto-Collapsing Toolbar",
+                subtitle = "Scroll down on any page to tuck away the navigation bar into a minimalist mini chip. Tap or scroll up to expand.",
+                icon = Icons.Filled.ArrowDownward,
+                iconContainerColor = Color(0xFFE3F2FD),
+                iconColor = Color(0xFF1976D2),
+                onClick = {},
+            )
+        }
 
-        SectionHeader(stringResource(R.string.setting_title_nav))
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.NAV_BUTTON,
-            direction = GestureDirection.UP,
-            label = stringResource(R.string.setting_gesture_up),
-            onPick = { picking = it },
-        )
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.NAV_BUTTON,
-            direction = GestureDirection.DOWN,
-            label = stringResource(R.string.setting_gesture_down),
-            onPick = { picking = it },
-        )
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.NAV_BUTTON,
-            direction = GestureDirection.LEFT,
-            label = stringResource(R.string.setting_gesture_left),
-            onPick = { picking = it },
-        )
-        DirectionRow(
-            settings = settings,
-            area = GestureArea.NAV_BUTTON,
-            direction = GestureDirection.RIGHT,
-            label = stringResource(R.string.setting_gesture_right),
-            onPick = { picking = it },
-        )
+        // Address Bar Gestures
+        SettingsCardGroup(title = stringResource(R.string.setting_title_toolbar)) {
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_up),
+                currentAction = settings.gestureToolbarUp,
+                icon = Icons.Filled.ArrowUpward,
+                iconContainerColor = Color(0xFFEDE7F6),
+                iconColor = Color(0xFF673AB7),
+                onClick = { picking = GesturePick(GestureArea.TOOLBAR, GestureDirection.UP, settings.gestureToolbarUp) },
+            )
+            SettingsDivider()
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_down),
+                currentAction = settings.gestureToolbarDown,
+                icon = Icons.Filled.ArrowDownward,
+                iconContainerColor = Color(0xFFEDE7F6),
+                iconColor = Color(0xFF673AB7),
+                onClick = { picking = GesturePick(GestureArea.TOOLBAR, GestureDirection.DOWN, settings.gestureToolbarDown) },
+            )
+            SettingsDivider()
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_left),
+                currentAction = settings.gestureToolbarLeft,
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                iconContainerColor = Color(0xFFEDE7F6),
+                iconColor = Color(0xFF673AB7),
+                onClick = { picking = GesturePick(GestureArea.TOOLBAR, GestureDirection.LEFT, settings.gestureToolbarLeft) },
+            )
+            SettingsDivider()
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_right),
+                currentAction = settings.gestureToolbarRight,
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                iconContainerColor = Color(0xFFEDE7F6),
+                iconColor = Color(0xFF673AB7),
+                onClick = { picking = GesturePick(GestureArea.TOOLBAR, GestureDirection.RIGHT, settings.gestureToolbarRight) },
+            )
+        }
+
+        // New Tab Button Gestures
+        SettingsCardGroup(title = "New Tab Button Gestures") {
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_up),
+                currentAction = settings.gestureNavUp,
+                icon = Icons.Filled.ArrowUpward,
+                iconContainerColor = Color(0xFFE0F2F1),
+                iconColor = Color(0xFF00897B),
+                onClick = { picking = GesturePick(GestureArea.NAV_BUTTON, GestureDirection.UP, settings.gestureNavUp) },
+            )
+            SettingsDivider()
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_down),
+                currentAction = settings.gestureNavDown,
+                icon = Icons.Filled.ArrowDownward,
+                iconContainerColor = Color(0xFFE0F2F1),
+                iconColor = Color(0xFF00897B),
+                onClick = { picking = GesturePick(GestureArea.NAV_BUTTON, GestureDirection.DOWN, settings.gestureNavDown) },
+            )
+            SettingsDivider()
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_left),
+                currentAction = settings.gestureNavLeft,
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                iconContainerColor = Color(0xFFE0F2F1),
+                iconColor = Color(0xFF00897B),
+                onClick = { picking = GesturePick(GestureArea.NAV_BUTTON, GestureDirection.LEFT, settings.gestureNavLeft) },
+            )
+            SettingsDivider()
+            DirectionRow(
+                title = stringResource(R.string.setting_gesture_right),
+                currentAction = settings.gestureNavRight,
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                iconContainerColor = Color(0xFFE0F2F1),
+                iconColor = Color(0xFF00897B),
+                onClick = { picking = GesturePick(GestureArea.NAV_BUTTON, GestureDirection.RIGHT, settings.gestureNavRight) },
+            )
+        }
     }
 
     picking?.let { pick ->
-        // gestureActionLabel is @Composable: resolve labels here in composition (inline map),
-        // pass plain strings, and map the chosen row back to its enum by index.
         val actionNames = GestureAction.entries.map { gestureActionLabel(it) }
+        val areaLabel = if (pick.area == GestureArea.TOOLBAR) {
+            stringResource(R.string.setting_title_toolbar)
+        } else {
+            "New Tab Button"
+        }
+        val dirLabel = when (pick.direction) {
+            GestureDirection.UP -> stringResource(R.string.setting_gesture_up)
+            GestureDirection.DOWN -> stringResource(R.string.setting_gesture_down)
+            GestureDirection.LEFT -> stringResource(R.string.setting_gesture_left)
+            GestureDirection.RIGHT -> stringResource(R.string.setting_gesture_right)
+        }
+
         SettingsChoiceDialog(
-            title = pick.direction.name.lowercase().replaceFirstChar { it.uppercase() },
+            title = "$areaLabel • $dirLabel",
             options = actionNames,
             selectedIndex = GestureAction.entries.indexOf(pick.current),
             label = { it },
@@ -135,34 +199,22 @@ private data class GesturePick(val area: GestureArea, val direction: GestureDire
 
 @Composable
 private fun DirectionRow(
-    settings: BBSettings,
-    area: GestureArea,
-    direction: GestureDirection,
-    label: String,
-    onPick: (GesturePick) -> Unit,
+    title: String,
+    currentAction: GestureAction,
+    icon: ImageVector,
+    iconContainerColor: Color,
+    iconColor: Color,
+    onClick: () -> Unit,
 ) {
-    val current = currentAction(settings, area, direction)
-    SettingsLinkRow(
-        title = label,
-        subtitle = gestureActionLabel(current),
-        icon = null,
-    ) {
-        onPick(GesturePick(area, direction, current))
-    }
+    ModernSettingsRow(
+        title = title,
+        trailingText = gestureActionLabel(currentAction),
+        icon = icon,
+        iconContainerColor = iconContainerColor,
+        iconColor = iconColor,
+        onClick = onClick,
+    )
 }
-
-private fun currentAction(s: BBSettings, area: GestureArea, direction: GestureDirection): GestureAction =
-    when (area to direction) {
-        GestureArea.TOOLBAR to GestureDirection.UP -> s.gestureToolbarUp
-        GestureArea.TOOLBAR to GestureDirection.DOWN -> s.gestureToolbarDown
-        GestureArea.TOOLBAR to GestureDirection.LEFT -> s.gestureToolbarLeft
-        GestureArea.TOOLBAR to GestureDirection.RIGHT -> s.gestureToolbarRight
-        GestureArea.NAV_BUTTON to GestureDirection.UP -> s.gestureNavUp
-        GestureArea.NAV_BUTTON to GestureDirection.DOWN -> s.gestureNavDown
-        GestureArea.NAV_BUTTON to GestureDirection.LEFT -> s.gestureNavLeft
-        GestureArea.NAV_BUTTON to GestureDirection.RIGHT -> s.gestureNavRight
-        else -> GestureAction.NONE
-    }
 
 /**
  * Action labels reuse the legacy string array entries (setting_gesture_01..10), so the picker

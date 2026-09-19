@@ -79,6 +79,8 @@ fun OverviewSheet(
     onOpenSettings: () -> Unit,
     onNewTab: () -> Unit,
     onOpenGames: () -> Unit,
+    onActivateTab: ((Long) -> Unit)? = null,
+    onCloseTab: ((Long) -> Unit)? = null,
 ) {
     val container = rememberContainer()
     val settings by container.settings.state.collectAsState()
@@ -186,11 +188,11 @@ fun OverviewSheet(
                         tabs = tabs,
                         activeId = activeId,
                         onActivate = { id ->
-                            container.tabs.activate(id)
+                            onActivateTab?.invoke(id) ?: container.tabs.activate(id)
                             onDismiss()
                         },
                         onClose = { id ->
-                            container.tabs.close(id)
+                            onCloseTab?.invoke(id) ?: container.tabs.close(id)
                             refreshTick++
                         },
                         onNewTab = {

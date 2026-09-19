@@ -271,8 +271,22 @@ class SettingsRepository(app: Application) {
         _state.value = read()
     }
 
+    fun isOnboardingCompleted(): Boolean = prefs.getBoolean(K.ONBOARDING_COMPLETED, false)
+
+    fun setOnboardingCompleted(completed: Boolean = true) {
+        prefs.edit().putBoolean(K.ONBOARDING_COMPLETED, completed).apply()
+    }
+
+    fun isTutorialCompleted(): Boolean = prefs.getBoolean(K.TUTORIAL_COMPLETED, false)
+
+    fun setTutorialCompleted(completed: Boolean = true) {
+        prefs.edit().putBoolean(K.TUTORIAL_COMPLETED, completed).apply()
+    }
+
     companion object K {
         const val FIRST_RUN_OK = "saved_key_ok"
+        const val ONBOARDING_COMPLETED = "bb_onboarding_completed"
+        const val TUTORIAL_COMPLETED = "bb_tutorial_completed"
 
         // Literal key names — identical to arrays.xml string resources / preference XMLs.
         const val THEME = "sp_theme"                       // sp_theme

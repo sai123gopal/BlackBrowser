@@ -65,7 +65,6 @@ import com.saigopal.browser.view.Toasty;
 import com.saigopal.browser.view.SWebView;
 import com.saigopal.browser.view.RecordAdapter;
 import com.saigopal.browser.view.SwipeTouchListener;
-import com.squareup.picasso.Picasso;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebViewFeature;
@@ -234,8 +233,8 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
         sp = PreferenceManager.getDefaultSharedPreferences(context);
         sp.edit().putInt("restart_changed", 0).apply();
-        sp.edit().putBoolean("pdf_create", false).commit();
-        sp.edit().putBoolean("IsIncognito",false).commit();
+        sp.edit().putBoolean("pdf_create", false).apply();
+        sp.edit().putBoolean("IsIncognito",false).apply();
 
         // P05 shell flip: the Compose shell replaces the legacy view path entirely.
         // Legacy chrome stays available for one release cycle via LEGACY_SHELL=true.
@@ -399,6 +398,15 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             bottomSheetDialog.setContentView(dialogView);
             bottomSheetDialog.show();
             HelperUnit.setBottomSheetBehavior(bottomSheetDialog, dialogView, BottomSheetBehavior.STATE_EXPANDED);
+        }
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        kotlin.jvm.functions.Function1<Integer, kotlin.Unit> trimmer = com.saigopal.browser.ui.shell.ShellActivityHolder.INSTANCE.getMemoryTrimmer();
+        if (trimmer != null) {
+            trimmer.invoke(level);
         }
     }
 
@@ -2427,9 +2435,12 @@ public class MainActivity extends AppCompatActivity implements BrowserController
             TextView name = view.findViewById(R.id.name);
 
             name.setText(web_name[position]);
-            Picasso.get().load("https://www.google.com/s2/favicons?sz=64&domain_url="+web_url[position])
-                    .resize(100,100)
-                    .into(imageView);
+            coil.ImageLoader imageLoader = coil.Coil.imageLoader(MainActivity.this);
+            coil.request.ImageRequest request = new coil.request.ImageRequest.Builder(MainActivity.this)
+                    .data("https://www.google.com/s2/favicons?sz=64&domain_url=" + web_url[position])
+                    .target(imageView)
+                    .build();
+            imageLoader.enqueue(request);
 
             return view;
         }

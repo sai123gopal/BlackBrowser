@@ -30,10 +30,11 @@ public class SWebChromeClient extends WebChromeClient {
     public void onProgressChanged(WebView view, int progress) {
         super.onProgressChanged(view, progress);
         sWebView.update(progress);
-        if (view.getTitle().isEmpty()) {
+        String title = view.getTitle();
+        if (title == null || title.isEmpty()) {
             sWebView.update(view.getUrl());
         } else {
-            sWebView.update(view.getTitle());
+            sWebView.update(title);
         }
     }
 
