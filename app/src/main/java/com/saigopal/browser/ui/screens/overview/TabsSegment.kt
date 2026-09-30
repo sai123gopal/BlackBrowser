@@ -143,8 +143,7 @@ private fun TabCard(
                     .fillMaxWidth()
                     .padding(start = BBSpace.sm, top = BBSpace.xs, end = BBSpace.xxs),
                 verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Favicon in header
+            ) {                // Favicon in header
                 Box(
                     modifier = Modifier
                         .size(18.dp)
@@ -157,12 +156,13 @@ private fun TabCard(
                         tileSize = 18.dp,
                     )
                     if (!tab.url.isNullOrEmpty()) {
-                        coil.compose.SubcomposeAsyncImage(
+                        // PERF: AsyncImage over the LetterTile instead of SubcomposeAsyncImage —
+                        // identical look (letter until loaded, bitmap on success) with no
+                        // per-cell subcomposition in the tab-switcher grid.
+                        coil.compose.AsyncImage(
                             model = "https://www.google.com/s2/favicons?sz=64&domain_url=${tab.url}",
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            loading = { },
-                            error = { },
                         )
                     }
                 }

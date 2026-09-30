@@ -37,9 +37,20 @@ class BrowserApplication : Application(), coil.ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        // P08 8.1: MobileAds.initialize exactly once, process-wide (was double-initialized in two
-        // activities). Async by nature; nothing blocks first frame.
-        com.saigopal.browser.ui.ads.AdsController.warmUp(this)
+        // PERF: MobileAds.initialize previously ran here during Application.onCreate, adding
+        // SDK thread + network spin-up before the first frame on low-end devices. The GMA SDK
+        // also self-initializes on the first loadAd, and the UMP consent flow is independent,
+        // so deferring past the first frame is behavior-neutral: ads only ever render on the
+        // start page / overview / settings, never frame one. Still exactly once, process-wide.
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+            { com.saigopal.browser.ui.ads.AdsController.warmUp(this) },
+            ADS_INIT_DELAY_MS,
+        )
+    }
+
+    private companion object {
+        /** Small enough to be invisible; large enough to let the first frame land first. */
+        const val ADS_INIT_DELAY_MS = 1500L
     }
 
     override fun newImageLoader(): coil.ImageLoader {

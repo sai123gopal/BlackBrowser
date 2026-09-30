@@ -192,6 +192,40 @@ public class RecordAction {
         return list;
     }
 
+    /**
+     * PERF: newest-first history window. Identical row content to listHistory(), just bounded:
+     * the start page needs only the few most recent distinct sites, and the legacy ascending
+     * scan materialized the ENTIRE table (every composition of the start page) to take 6.
+     * The fetch window is deliberately generous (8× limit) so the caller's distinct-by-url
+     * pass still fills the ask even with heavy revisits, preserving exact display semantics.
+     */
+    public List<Record> listRecentHistory(int limit) {
+        List<Record> list = new ArrayList<>();
+        if (limit <= 0) return list;
+        Cursor cursor = database.query(
+                RecordUnit.TABLE_HISTORY,
+                new String[] {
+                        RecordUnit.COLUMN_TITLE,
+                        RecordUnit.COLUMN_URL,
+                        RecordUnit.COLUMN_TIME
+                },
+                null,
+                null,
+                null,
+                null,
+                RecordUnit.COLUMN_TIME + " desc",
+                String.valueOf(limit * 8)
+        );
+        if (cursor == null) return list;
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            list.add(getRecord(cursor));
+            cursor.moveToNext();
+        }
+        cursor.close();
+        return list;
+    }
+
 
     // General
 

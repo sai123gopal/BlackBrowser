@@ -114,8 +114,11 @@ fun GamesHubScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // One WebView per Activity instance, reused across hub visits (never destroyed on dispose —
-    // that was the repeated-reload bug); lifecycle pause/resume still applies below.
+    // that was the repeated-reload bug); lifecycle pause/resume still applies below. PERF: a hub
+    // engine parked in the store is left PAUSED (see onDispose), so re-entry must resume it —
+    // handled both here and by the observer replay for the active host.
     val webView = remember { GamesHubStore.obtain(context) }
+    LaunchedEffect(webView) { runCatching { webView.onResume() } }
 
     LaunchedEffect(Unit) {
         GamesAnalytics.logOpen(context)
@@ -140,8 +143,13 @@ fun GamesHubScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            // PERF: the lifecycle observer dies with the composition, which previously left the
+            // hub engine RUNNING after route switches — games kept ticking (CPU/battery/network)
+            // invisibly behind the browser. Pausing here (and resuming via the observer replay
+            // when the user re-enters the hub) stops that drain while keeping the engine cached
+            // in GamesHubStore — the original no-reload fix is untouched.
+            runCatching { webView.onPause() }
             GamesAnalytics.logSessionEnd(context)
-            // The engine itself survives in GamesHubStore; only the lifecycle hook detaches.
         }
     }
 

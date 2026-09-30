@@ -98,17 +98,43 @@ class ShellController(
         }
     }
 
+    /** Last per-tab metadata snapshot; prevents a full tab-list emit on every progress tick. */
+    private var lastMetaTitle: String? = null
+    private var lastMetaUrl: String? = null
+    private var lastMetaProgress = -1
+    private var lastMetaTabId: Long? = null
+
     override fun updateProgress(progress: Int) {
         this.progress.intValue = progress
         val id = container.tabs.activeId.value
         val wv = pool.get(id)
         if (id != null && wv != null) {
-            container.tabs.updateMeta(
-                id,
-                title = wv.title?.takeIf { it.isNotBlank() },
-                url = wv.url,
-                progress = progress,
-            )
+            // PERF: TabManager.updateMeta copies the whole tab list and emits a new StateFlow
+            // value each call; onProgressChanged fires dozens of times per page. Nothing renders
+            // TabState.progress (the bar reads ShellController.progress), so only forward
+            // changes that actually matter: title/url immediately, progress coalesced to ≥10
+            // steps or completion. Visible behavior is identical; recomposition churn and the
+            // per-tick session-save debounce churn are gone.
+            val title = wv.title?.takeIf { it.isNotBlank() }
+            val url = wv.url
+            val titleChanged = title != lastMetaTitle || id != lastMetaTabId
+            val urlChanged = url != lastMetaUrl || id != lastMetaTabId
+            val progressChanged =
+                progress == 100 ||
+                    progress - lastMetaProgress >= 10 ||
+                    progress < lastMetaProgress // new navigation restarted the bar
+            if (titleChanged || urlChanged || progressChanged) {
+                container.tabs.updateMeta(
+                    id,
+                    title = title,
+                    url = url,
+                    progress = progress,
+                )
+                lastMetaTitle = title
+                lastMetaUrl = url
+                lastMetaProgress = progress
+                lastMetaTabId = id
+            }
         }
     }
 
@@ -253,6 +279,10 @@ class ShellController(
             markIncognitoExplainerSeen()
             incognitoExplainerVisible.value = true
         }
+        lastMetaTabId = null
+        lastMetaProgress = -1
+        lastMetaTitle = null
+        lastMetaUrl = null
         val id = container.tabs.newTab(
             title = activity.getString(com.saigopal.browser.R.string.app_name),
             url = url,
@@ -273,6 +303,9 @@ class ShellController(
     fun loadInActive(rawUrl: String) {
         val id = activeTabId() ?: return
         container.tabs.updateMeta(id, url = rawUrl, title = null)
+        lastMetaUrl = rawUrl
+        lastMetaTitle = null
+        lastMetaProgress = 0
         loadIntoActiveIfReal(rawUrl)
         progress.intValue = 0
     }
@@ -361,6 +394,10 @@ class ShellController(
         container.tabs.activate(id)
         pool.activate(id)
         applyIncognitoCookiePolicy()
+        lastMetaTabId = id
+        lastMetaProgress = -1
+        lastMetaTitle = null
+        lastMetaUrl = null
         val tab = container.tabs.tabs.value.firstOrNull { it.id == id }
         if (tab != null && !com.saigopal.browser.domain.UrlInterpreter.isStartPage(tab.url.orEmpty())) {
             val wv = pool.get(id)

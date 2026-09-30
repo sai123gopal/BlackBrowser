@@ -24,13 +24,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +50,7 @@ import androidx.preference.PreferenceManager
 import com.saigopal.browser.R
 import com.saigopal.browser.domain.BBRecord
 import com.saigopal.browser.ui.design.components.BBCard
+import com.saigopal.browser.ui.design.components.BBFormSheet
 import com.saigopal.browser.ui.design.components.BBIconTile
 import com.saigopal.browser.ui.design.components.BBTextFieldPill
 import com.saigopal.browser.ui.design.theme.BBSpace
@@ -240,7 +240,10 @@ fun HomeSegment(
     }
 }
 
-/** Port of legacy updateHomeGridView / dialog_edit_homescreen semantics, same keys and toasts. */
+/**
+ * Port of legacy updateHomeGridView / dialog_edit_homescreen semantics, same keys and toasts.
+ * UI migrated from AlertDialog to the standard form bottom sheet (app design language).
+ */
 @Composable
 private fun QuickTileEditDialog(
     initialName: String,
@@ -252,31 +255,25 @@ private fun QuickTileEditDialog(
     var name by remember { mutableStateOf(initialName) }
     var url by remember { mutableStateOf(initialUrl) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.menu_edit)) },
-        text = {
-            Column {
-                BBTextFieldPill(value = name, onValueChange = { name = it }, hint = "Name")
-                BBTextFieldPill(
-                    value = url,
-                    onValueChange = { url = it },
-                    hint = "URL",
-                    modifier = Modifier.padding(top = BBSpace.sm),
-                )
+    BBFormSheet(
+        title = stringResource(R.string.menu_edit),
+        icon = Icons.Filled.Edit,
+        onDismiss = onDismiss,
+        confirmEnabled = name.isNotBlank() && url.isNotBlank(),
+        onConfirm = {
+            if (name.isBlank() || url.isBlank()) {
+                Toast.makeText(context, "Enter all details", Toast.LENGTH_SHORT).show()
+            } else {
+                onSave(name.trim(), url.trim())
             }
         },
-        confirmButton = {
-            TextButton(onClick = {
-                if (name.isBlank() || url.isBlank()) {
-                    Toast.makeText(context, "Enter all details", Toast.LENGTH_SHORT).show()
-                } else {
-                    onSave(name.trim(), url.trim())
-                }
-            }) { Text(stringResource(android.R.string.ok)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-        },
-    )
+    ) {
+        BBTextFieldPill(value = name, onValueChange = { name = it }, hint = "Name")
+        BBTextFieldPill(
+            value = url,
+            onValueChange = { url = it },
+            hint = "URL",
+            modifier = Modifier.padding(top = BBSpace.sm),
+        )
+    }
 }

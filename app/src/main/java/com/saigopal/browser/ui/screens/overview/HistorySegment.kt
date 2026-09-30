@@ -36,7 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
 import com.saigopal.browser.R
 import com.saigopal.browser.ui.design.components.BBConfirmSheet
 import com.saigopal.browser.ui.design.components.EmptyState

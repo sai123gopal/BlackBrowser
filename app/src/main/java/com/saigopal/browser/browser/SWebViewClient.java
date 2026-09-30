@@ -70,6 +70,18 @@ public class SWebViewClient extends WebViewClient {
         this.cookie = new Cookie(this.context);
         this.white = false;
         this.enable = true;
+        // PERF: seed the all-time counter from prefs once per client construction.
+        loadBlockedAdsAllTime(this.sp);
+        // ROBUSTNESS: keep the page-scoped master-switch cache exactly in sync with the pref
+        // (Settings → Privacy toggles ad-block without reloading the page). The listener is
+        // created HERE (not as a field initializer) because blank finals (context/sp) are only
+        // assigned in this constructor and Java forbids reading them from earlier initializers.
+        this.sp.registerOnSharedPreferenceChangeListener((sharedPreferences, key) -> {
+            if (key == null || key.equals(this.context.getString(com.saigopal.browser.R.string.sp_ad_block))) {
+                adBlockPrefCache = sharedPreferences.getBoolean(
+                        this.context.getString(com.saigopal.browser.R.string.sp_ad_block), true);
+            }
+        });
     }
 
 
@@ -86,6 +98,7 @@ public class SWebViewClient extends WebViewClient {
                 sWebView.setSafeOriginalUrl(orig);
             }
         } catch (Throwable ignored) {}
+        seedInterceptorCaches();
         sWebView.update(15);
     }
 
@@ -104,18 +117,29 @@ public class SWebViewClient extends WebViewClient {
         }
         sWebView.update(100);
 
-        boolean isInco = sp.getBoolean("IsIncognito",false);
+        // PERF: persist the in-memory blocked-ads counter once per page (was once per blocked ad).
+        flushBlockedAdsStats();
 
-        if (!isInco)
-        {
-            if (sp.getBoolean("saveHistory", true)) {
-                RecordAction action = new RecordAction(context);
-                action.open(true);
-                if (action.checkUrl(url, RecordUnit.TABLE_HISTORY)) {
-                    action.deleteURL(url, RecordUnit.TABLE_HISTORY);
+        // PERF (P0): history recording now lives exclusively in the Compose shell
+        // (ShellController.updateAutoComplete → RecordsRepository, incognito-aware and async).
+        // The legacy synchronous writer above was (a) SQLite on the main thread and (b) NOT gated
+        // on LEGACY_SHELL, so with the Compose shell active every visit was double-recorded and
+        // cold-started incognito-default sessions leaked rows (MainActivity resets IsIncognito on
+        // launch while SettingsRepository persists the incognito default under the same key).
+        // LEGACY_SHELL=true restores this writer verbatim for rollback parity.
+        if (com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
+            boolean isInco = sp.getBoolean("IsIncognito", false);
+
+            if (!isInco) {
+                if (sp.getBoolean("saveHistory", true)) {
+                    RecordAction action = new RecordAction(context);
+                    action.open(true);
+                    if (action.checkUrl(url, RecordUnit.TABLE_HISTORY)) {
+                        action.deleteURL(url, RecordUnit.TABLE_HISTORY);
+                    }
+                    action.addHistory(new Record(sWebView.getTitle(), url, System.currentTimeMillis(), 0));
+                    action.close();
                 }
-                action.addHistory(new Record(sWebView.getTitle(), url, System.currentTimeMillis(), 0));
-                action.close();
             }
         }
 
@@ -219,22 +243,92 @@ public class SWebViewClient extends WebViewClient {
             new ByteArrayInputStream(new byte[0])
     );
 
+    // ---------------------------------------------------------------- interceptor fast-path caches
+    //
+    // PERF: shouldInterceptRequest fires for EVERY subresource (often 50-200 per page) on WebView
+    // IO threads. The originals re-read SharedPreferences, lowercased 4 URL copies for the Gamezop
+    // check, and re-parsed URIs per request. The caches below are invalidated EXACTLY:
+    // navigation re-seeds them via onPageStarted, the pref listener tracks master-switch changes
+    // (Settings → Privacy toggles do NOT reload), and AdBlock.whitelistVersion() tracks whitelist
+    // membership changes (Whitelist screens, Fast Toggles chips, shield chip).
+
+    /** All-time blocked-ads counter: incremented in memory per block, persisted once per page. */
+    private static final java.util.concurrent.atomic.AtomicLong blockedAdsAllTime = new java.util.concurrent.atomic.AtomicLong(-1);
+
+    private static long loadBlockedAdsAllTime(SharedPreferences sp) {
+        long seed = blockedAdsAllTime.get();
+        if (seed < 0) {
+            seed = sp.getInt("stats_ads_blocked", 0);
+            blockedAdsAllTime.compareAndSet(-1, seed);
+        }
+        return seed;
+    }
+
+    /** Flushes the in-memory counter to prefs; called from onPageFinished (once per page). */
+    private void flushBlockedAdsStats() {
+        long now = blockedAdsAllTime.get();
+        if (now > 0) {
+            sp.edit().putInt("stats_ads_blocked", (int) Math.min(now, Integer.MAX_VALUE)).apply();
+        }
+    }
+
+    /** Page-scoped Gamezop exemption: true when any navigation URL for this page is Gamezop. */
+    private volatile boolean gamezopContext = false;
+
+    /** Page-scoped cache: ad-block master decision for this navigation (mirrors the pref). */
+    private volatile boolean adBlockPrefCache = true;
+
+    /** Page-scoped cache: ad-block whitelist decision for the page's URL/domain. */
+    private volatile boolean adBlockWhitelistedCache = false;
+
+    /** Whitelist generation the current [adBlockWhitelistedCache] was computed against. */
+    private volatile long adBlockWhitelistStamp = -1L;
+
+    private void seedInterceptorCaches() {
+        gamezopContext = containsGamezop(currentPageUrl)
+                || containsGamezop(sWebView.getCurrentUrl())
+                || containsGamezop(sWebView.getSafeOriginalUrl());
+        adBlockPrefCache = sp.getBoolean(context.getString(com.saigopal.browser.R.string.sp_ad_block), true);
+        String pageUrl = currentPageUrl;
+        adBlockWhitelistedCache = pageUrl != null && !pageUrl.isEmpty()
+                && adBlock.isWhite(pageUrl);
+        adBlockWhitelistStamp = adBlock.whitelistVersion();
+    }
+
+    /**
+     * ROBUSTNESS: exact invalidation for out-of-band changes while a page is loading.
+     * - The ad-block master switch lives in SharedPreferences; the change listener registered in
+     *   the constructor re-seeds the cached decision the moment ANY writer flips it (Settings →
+     *   Privacy toggles do NOT reload the page, so a naive page-scoped cache would serve stale
+     *   blocking decisions).
+     * - Whitelist membership (Whitelist screens, Fast Toggles chips, Page Menu shield) bumps
+     *   AdBlock.whitelistVersion(); requests re-evaluate the (cached) page decision when the
+     *   stamp moves, without touching the common per-request path.
+     */
+
+    private static boolean containsGamezop(String url) {
+        return url != null && url.toLowerCase(java.util.Locale.US).contains("gamezop.com");
+    }
+
     private boolean isGamezopContext(String pageUrl, String requestUrl) {
-        if (pageUrl != null && pageUrl.toLowerCase().contains("gamezop.com")) {
+        if (gamezopContext) {
             return true;
         }
-        if (requestUrl != null && requestUrl.toLowerCase().contains("gamezop.com")) {
-            return true;
+        // Per-request check kept ONLY for the request URL itself: subresources of a Gamezop page
+        // can arrive before the main document seeds the caches (cold start deep-links), and CDN
+        // hosts like assets.gamezop.com must never be blocked regardless of the page URL.
+        return containsGamezop(requestUrl);
+    }
+
+    /** Whitelist-aware fast path: cached page decision, re-checked when the whitelist changes. */
+    private boolean isPageAdWhitelisted(String pageUrl) {
+        if (pageUrl == null || pageUrl.isEmpty()) return false;
+        long stamp = adBlock.whitelistVersion();
+        if (stamp != adBlockWhitelistStamp) {
+            adBlockWhitelistStamp = stamp;
+            adBlockWhitelistedCache = adBlock.isWhite(pageUrl);
         }
-        String current = sWebView.getCurrentUrl();
-        if (current != null && current.toLowerCase().contains("gamezop.com")) {
-            return true;
-        }
-        String orig = sWebView.getSafeOriginalUrl();
-        if (orig != null && orig.toLowerCase().contains("gamezop.com")) {
-            return true;
-        }
-        return false;
+        return adBlockWhitelistedCache;
     }
 
     @Override
@@ -250,16 +344,13 @@ public class SWebViewClient extends WebViewClient {
         if (isGamezopContext(pageUrl, url)) {
             return super.shouldInterceptRequest(view, url);
         }
-        if (enable && !white && sp.getBoolean(context.getString(R.string.sp_ad_block), true)) {
-            if (pageUrl != null && !pageUrl.isEmpty() && adBlock.isWhite(pageUrl)) {
+        if (enable && !white && adBlockPrefCache) {
+            if (isPageAdWhitelisted(pageUrl)) {
                 return super.shouldInterceptRequest(view, url);
             }
             if (adBlock.isAd(url)) {
                 sWebView.incrementBlockedAdsCount();
-                synchronized (SWebViewClient.class) {
-                    int allTime = sp.getInt("stats_ads_blocked", 0);
-                    sp.edit().putInt("stats_ads_blocked", allTime + 1).apply();
-                }
+                blockedAdsAllTime.incrementAndGet();
                 return EMPTY_RESPONSE;
             }
         }
@@ -289,16 +380,13 @@ public class SWebViewClient extends WebViewClient {
             return super.shouldInterceptRequest(view, request);
         }
 
-        if (enable && !white && sp.getBoolean(context.getString(R.string.sp_ad_block), true)) {
-            if (pageUrl != null && !pageUrl.isEmpty() && adBlock.isWhite(pageUrl)) {
+        if (enable && !white && adBlockPrefCache) {
+            if (isPageAdWhitelisted(pageUrl)) {
                 return super.shouldInterceptRequest(view, request);
             }
             if (adBlock.isAd(reqUrl)) {
                 sWebView.incrementBlockedAdsCount();
-                synchronized (SWebViewClient.class) {
-                    int allTime = sp.getInt("stats_ads_blocked", 0);
-                    sp.edit().putInt("stats_ads_blocked", allTime + 1).apply();
-                }
+                blockedAdsAllTime.incrementAndGet();
                 return EMPTY_RESPONSE;
             }
         }

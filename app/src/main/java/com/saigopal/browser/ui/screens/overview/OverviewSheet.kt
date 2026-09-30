@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
@@ -182,45 +185,69 @@ fun OverviewSheet(
             }
 
             // Bounded height so the lazy grids/columns inside segments can measure & scroll.
-            Box(Modifier.weight(1f)) {
-                when (segment) {
-                    OverviewSegment.TABS -> TabsSegment(
-                        tabs = tabs,
-                        activeId = activeId,
-                        onActivate = { id ->
-                            onActivateTab?.invoke(id) ?: container.tabs.activate(id)
-                            onDismiss()
-                        },
-                        onClose = { id ->
-                            onCloseTab?.invoke(id) ?: container.tabs.close(id)
-                            refreshTick++
-                        },
-                        onNewTab = {
-                            onDismiss()
-                            onNewTab()
-                        },
-                    )
-                    OverviewSegment.HOME -> HomeSegment(
-                        refreshTick = refreshTick,
-                        onLoadUrl = onLoadUrl,
-                        onOpenGames = {
-                            onDismiss()
-                            onOpenGames()
-                        },
-                        onChanged = { refreshTick++ },
-                    )
-                    OverviewSegment.SAVED -> SavedSegment(
-                        bookmarkSort = settings.bookmarkSort,
-                        enabledColors = settings.enabledFilterColors,
-                        refreshTick = refreshTick,
-                        onLoadUrl = onLoadUrl,
-                        onChanged = { refreshTick++ },
-                    )
-                    OverviewSegment.HISTORY -> HistorySegment(
-                        refreshTick = refreshTick,
-                        onLoadUrl = onLoadUrl,
-                        onChanged = { refreshTick++ },
-                    )
+            // FIX: horizontal swipe anywhere on the content area moves between segments
+            // (Tabs → Home → Saved → History), matching the chip order; chips stay clickable.
+            // Each segment is keyed and KEEP-alive via rememberSaveable-less state hoisting:
+            // segment lists live in the segment composables, so a horizontal page change simply
+            // swaps content — vertical scroll inside a segment starts fresh per visit, which
+            // matches the previous chip-tap behavior exactly.
+            val pagerState = rememberPagerState(pageCount = { OverviewSegment.entries.size })
+            LaunchedEffect(segment) {
+                // Chip/deep-link driven changes animate the pager to the matching page.
+                val target = OverviewSegment.entries.indexOf(segment)
+                if (pagerState.currentPage != target) {
+                    runCatching { pagerState.animateScrollToPage(target) }
+                }
+            }
+            // Swipe-driven settle syncs back into `segment` so the chips follow the page.
+            LaunchedEffect(pagerState.settledPage) {
+                val seg = OverviewSegment.entries.getOrNull(pagerState.settledPage)
+                if (seg != null && seg != segment) segment = seg
+            }
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+            ) { page ->
+                Box(Modifier.fillMaxSize()) {
+                    when (OverviewSegment.entries[page]) {
+                        OverviewSegment.TABS -> TabsSegment(
+                            tabs = tabs,
+                            activeId = activeId,
+                            onActivate = { id ->
+                                onActivateTab?.invoke(id) ?: container.tabs.activate(id)
+                                onDismiss()
+                            },
+                            onClose = { id ->
+                                onCloseTab?.invoke(id) ?: container.tabs.close(id)
+                                refreshTick++
+                            },
+                            onNewTab = {
+                                onDismiss()
+                                onNewTab()
+                            },
+                        )
+                        OverviewSegment.HOME -> HomeSegment(
+                            refreshTick = refreshTick,
+                            onLoadUrl = onLoadUrl,
+                            onOpenGames = {
+                                onDismiss()
+                                onOpenGames()
+                            },
+                            onChanged = { refreshTick++ },
+                        )
+                        OverviewSegment.SAVED -> SavedSegment(
+                            bookmarkSort = settings.bookmarkSort,
+                            enabledColors = settings.enabledFilterColors,
+                            refreshTick = refreshTick,
+                            onLoadUrl = onLoadUrl,
+                            onChanged = { refreshTick++ },
+                        )
+                        OverviewSegment.HISTORY -> HistorySegment(
+                            refreshTick = refreshTick,
+                            onLoadUrl = onLoadUrl,
+                            onChanged = { refreshTick++ },
+                        )
+                    }
                 }
             }
 

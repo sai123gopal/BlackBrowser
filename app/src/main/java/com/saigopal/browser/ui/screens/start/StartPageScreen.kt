@@ -61,6 +61,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -103,6 +104,7 @@ import com.saigopal.browser.domain.SearchEngine
 import com.saigopal.browser.domain.UrlInterpreter
 import com.saigopal.browser.ui.ads.AdsController
 import com.saigopal.browser.ui.design.components.BBFavicon
+import com.saigopal.browser.ui.design.components.BBFormSheet
 import com.saigopal.browser.ui.design.components.BBIconTile
 import com.saigopal.browser.ui.design.components.BBTextFieldPill
 import com.saigopal.browser.ui.design.theme.BBSpace
@@ -244,7 +246,10 @@ fun StartPageScreen(
 
         // Fetch recent history
         runCatching {
-            recentHistory = container.records.listHistory()
+            // PERF: bounded newest-first window instead of materializing the whole history
+            // table on every start-page composition. The filter → distinctBy → take chain is
+            // unchanged, so the displayed strip is identical.
+            recentHistory = container.records.listRecentHistory(48)
                 .filter { it.url.isNotBlank() && !UrlInterpreter.isInternalScheme(it.url) }
                 .distinctBy { it.url }
                 .take(6)
@@ -859,7 +864,7 @@ fun StartPageScreen(
                                                 menuExpanded = false
                                                 scope.launch {
                                                     container.records.deleteUrl(item.url, com.saigopal.browser.unit.RecordUnit.TABLE_HISTORY)
-                                                    recentHistory = container.records.listHistory()
+                                                    recentHistory = container.records.listRecentHistory(48)
                                                         .filter { it.url.isNotBlank() && !UrlInterpreter.isInternalScheme(it.url) }
                                                         .distinctBy { it.url }
                                                         .take(6)
@@ -890,114 +895,92 @@ fun StartPageScreen(
 
     // ---- Dialogs ----
 
-    // Edit Pinned Site Dialog
+    // Edit Pinned Site — form bottom sheet (design-language migration from AlertDialog)
     editingTile?.let { tile ->
         var editTitle by remember(tile) { mutableStateOf(tile.title) }
         var editUrl by remember(tile) { mutableStateOf(tile.url) }
 
-        AlertDialog(
-            onDismissRequest = { editingTile = null },
-            title = { Text("Edit Pinned Site") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(BBSpace.xs)) {
-                    BBTextFieldPill(
-                        value = editTitle,
-                        onValueChange = { editTitle = it },
-                        hint = "Title",
-                    )
-                    BBTextFieldPill(
-                        value = editUrl,
-                        onValueChange = { editUrl = it },
-                        hint = "https://example.com",
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val t = editTitle.trim()
-                        val u = editUrl.trim()
-                        if (u.isNotEmpty()) {
-                            scope.launch {
-                                container.records.deleteTile(tile.url)
-                                container.records.addTile(t.ifEmpty { u }, u, 0)
-                                tiles = container.records.listTiles()
-                            }
-                        }
-                        editingTile = null
-                    },
-                ) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                container.records.deleteTile(tile.url)
-                                tiles = container.records.listTiles()
-                            }
-                            editingTile = null
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) {
-                        Text("Remove")
-                    }
-                    TextButton(onClick = { editingTile = null }) {
-                        Text("Cancel")
+        BBFormSheet(
+            title = "Edit Pinned Site",
+            icon = Icons.Filled.Edit,
+            onDismiss = { editingTile = null },
+            confirmEnabled = editUrl.isNotBlank(),
+            onConfirm = {
+                val t = editTitle.trim()
+                val u = editUrl.trim()
+                if (u.isNotEmpty()) {
+                    scope.launch {
+                        container.records.deleteTile(tile.url)
+                        container.records.addTile(t.ifEmpty { u }, u, 0)
+                        tiles = container.records.listTiles()
                     }
                 }
+                editingTile = null
             },
-        )
+        ) {
+            BBTextFieldPill(
+                value = editTitle,
+                onValueChange = { editTitle = it },
+                hint = "Title",
+            )
+            BBTextFieldPill(
+                value = editUrl,
+                onValueChange = { editUrl = it },
+                hint = "https://example.com",
+                modifier = Modifier.padding(top = BBSpace.xs),
+            )
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        container.records.deleteTile(tile.url)
+                        tiles = container.records.listTiles()
+                    }
+                    editingTile = null
+                },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.padding(top = BBSpace.xs),
+            ) {
+                Text("Remove this tile")
+            }
+        }
     }
 
-    // Add Pinned Site Dialog
+    // Add Pinned Site — form bottom sheet (design-language migration from AlertDialog)
     if (showAddTileDialog) {
         var newTitle by remember { mutableStateOf("") }
         var newUrl by remember { mutableStateOf("") }
 
-        AlertDialog(
-            onDismissRequest = { showAddTileDialog = false },
-            title = { Text("Add Pinned Site") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(BBSpace.xs)) {
-                    BBTextFieldPill(
-                        value = newTitle,
-                        onValueChange = { newTitle = it },
-                        hint = "Site Title (e.g. GitHub)",
-                    )
-                    BBTextFieldPill(
-                        value = newUrl,
-                        onValueChange = { newUrl = it },
-                        hint = "https://github.com",
-                    )
+        BBFormSheet(
+            title = "Add Pinned Site",
+            icon = Icons.Filled.Add,
+            onDismiss = { showAddTileDialog = false },
+            confirmLabel = "Add",
+            confirmEnabled = newUrl.isNotBlank(),
+            onConfirm = {
+                val t = newTitle.trim()
+                val u = newUrl.trim()
+                if (u.isNotEmpty()) {
+                    val canonicalUrl = if (!u.startsWith("http://") && !u.startsWith("https://")) "https://$u" else u
+                    scope.launch {
+                        container.records.addTile(t.ifEmpty { canonicalUrl }, canonicalUrl, tiles.size)
+                        tiles = container.records.listTiles()
+                    }
                 }
+                showAddTileDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val t = newTitle.trim()
-                        val u = newUrl.trim()
-                        if (u.isNotEmpty()) {
-                            val canonicalUrl = if (!u.startsWith("http://") && !u.startsWith("https://")) "https://$u" else u
-                            scope.launch {
-                                container.records.addTile(t.ifEmpty { canonicalUrl }, canonicalUrl, tiles.size)
-                                tiles = container.records.listTiles()
-                            }
-                        }
-                        showAddTileDialog = false
-                    },
-                ) {
-                    Text("Add")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddTileDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
+        ) {
+            BBTextFieldPill(
+                value = newTitle,
+                onValueChange = { newTitle = it },
+                hint = "Site Title (e.g. GitHub)",
+            )
+            BBTextFieldPill(
+                value = newUrl,
+                onValueChange = { newUrl = it },
+                hint = "https://github.com",
+                modifier = Modifier.padding(top = BBSpace.xs),
+            )
+        }
     }
 
     // Search Engine Selector Dialog

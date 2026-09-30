@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,6 +29,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -249,6 +252,14 @@ fun SettingsDivider() {
  * shapes legacy preference screens expressed with EditText/ListPreference.
  */
 
+/**
+ * FIX: scroll position was lost on “scroll → open a sub-screen → back” because every scaffold
+ * owned a private rememberScrollState() that died when the screen left composition.
+ * SettingsRouteScreen now provides a per-route ScrollState through this local, so each sub-screen
+ * restores its own scroll on back (home screen hoists its state separately).
+ */
+val LocalSettingsScaffoldScroll = compositionLocalOf { ScrollState(0) }
+
 /** Standard sub-screen scaffold: back arrow, large title, scrollable body. */
 @Composable
 fun SettingsScaffold(
@@ -269,12 +280,20 @@ fun SettingsScaffold(
                 onClick = onBack,
             )
             Spacer(Modifier.padding(BBSpace.xxs))
-            Text(title, style = MaterialTheme.typography.headlineSmall)
+            // FIX: explicit theme color. The title previously relied on the ambient
+            // LocalContentColor (black by default) and rendered black-on-black on the
+            // DARK/AMOLED backgrounds. onBackground stays correct in light, dark, AMOLED,
+            // and dynamic-color schemes alike.
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
         }
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(LocalSettingsScaffoldScroll.current)
                 .padding(bottom = BBSpace.xxl),
         ) {
             body()

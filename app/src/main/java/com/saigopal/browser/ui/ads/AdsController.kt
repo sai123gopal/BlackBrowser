@@ -56,12 +56,27 @@ object AdsController {
 
     // ---- 8.1 init -----------------------------------------------------------------------------
 
-    /** Called once from BrowserApplication.onCreate; MobileAds.initialize is async by nature. */
+    /**
+     * Called once from BrowserApplication.onCreate (deferred past first frame).
+     *
+     * PERF hardening: GMA's own initialization can complete AFTER this returns (it is async),
+     * and Banner composable run an order of magnitude earlier than the deferred warmUp delay on
+     * fast cold starts (e.g. resumed-into-overview). loadAd-before-initialize used to be a GMA
+     * warning; modern GMA queues the request and initializes first, but belt-and-braces: the
+     * first Banner waits for the SDK init callback before its first loadAd. No other path calls
+     * MobileAds.initialize, so this remains exactly-once process-wide.
+     */
+    @Volatile
+    private var sdkReady = false
+
     fun warmUp(context: Context) {
         if (warmedUp || !com.saigopal.browser.BuildConfig.ADS_ENABLED) return
         warmedUp = true
-        MobileAds.initialize(context) {}
+        MobileAds.initialize(context) { sdkReady = true }
     }
+
+    /** True when the GMA SDK has finished initializing (or ADS is off — banners never show). */
+    fun isSdkReady(): Boolean = sdkReady
 
     // ---- 8.4 UMP consent ------------------------------------------------------------------------
 
@@ -145,7 +160,7 @@ object AdsController {
             }
             val now = SystemClock.elapsedRealtime()
             val intervalElapsed = now - (lastLoadAt[placement] ?: 0L) >= MIN_RELOAD_INTERVAL_MS
-            if (intervalElapsed && !adView.isLoading) {
+            if (intervalElapsed && !adView.isLoading && sdkReady) {
                 adView.loadAd(AdRequest.Builder().build())
                 lastLoadAt[placement] = now
             }

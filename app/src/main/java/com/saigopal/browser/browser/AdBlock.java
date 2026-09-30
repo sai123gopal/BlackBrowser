@@ -9,12 +9,16 @@ import android.util.Log;
 import com.saigopal.browser.database.RecordAction;
 import com.saigopal.browser.unit.RecordUnit;
 
+import android.os.SystemClock;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter {
     private static final String FILE = "hosts.txt";
@@ -23,6 +27,23 @@ public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter 
     private static final List<String> whitelist = Collections.synchronizedList(new ArrayList<>());
     @SuppressLint("ConstantLocale")
     private static final Locale locale = Locale.getDefault();
+
+    // PERF (bounded memo): the whitelist scan iterates every stored domain per call and the
+    // original parsed a java.net.URI per URL — both once per subresource (50-200× per page).
+    // Memoizing getDomain(url)→domain is result-identical (whitelist changes fall out via the
+    // cache key and TTL below; hosts.txt is static and never consulted by getDomain).
+    private static final ConcurrentHashMap<String, String> domainCache = new ConcurrentHashMap<>();
+    private static final int DOMAIN_CACHE_MAX = 512;   // bounded: one entry per distinct URL prefix seen
+    private static final long DOMAIN_CACHE_TTL_MS = 60_000L;
+    private static volatile long domainCacheSweptAt = 0L;
+
+    /** Bumped on every whitelist mutation so page-scoped decisions can invalidate exactly. */
+    private static final AtomicLong whitelistVersion = new AtomicLong(0);
+
+    /** Current whitelist generation; callers cache decisions against this stamp. */
+    public static long whitelistVersion() {
+        return whitelistVersion.get();
+    }
     private static volatile boolean loaded = false;
 
     private static void loadHosts(final Context context) {
@@ -61,22 +82,38 @@ public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter 
         whitelist.addAll(action.listDomains(RecordUnit.TABLE_WHITELIST));
         action.close();
     }
-
     public static String getDomain(String url) throws URISyntaxException {
         if (url == null || url.trim().isEmpty()) return "";
-        url = url.toLowerCase(locale);
 
-        int index = url.indexOf('/', 8); // -> http://(7) and https://(8)
-        if (index != -1) {
-            url = url.substring(0, index);
+        // PERF: bounded memo fast-path; identical result to the full parse below.
+        long now = SystemClock.elapsedRealtime();
+        if (domainCacheSweptAt == 0L || now - domainCacheSweptAt > DOMAIN_CACHE_TTL_MS) {
+            domainCacheSweptAt = now;
+            domainCache.clear();
+        }
+        String cached = domainCache.get(url);
+        if (cached != null) {
+            return cached;
         }
 
-        URI uri = new URI(url);
+        String lowered = url.toLowerCase(locale);
+
+        int index = lowered.indexOf('/', 8); // -> http://(7) and https://(8)
+        if (index != -1) {
+            lowered = lowered.substring(0, index);
+        }
+
+        URI uri = new URI(lowered);
         String domain = uri.getHost();
         if (domain == null) {
-            return url;
+            domain = lowered;
         }
-        return domain.startsWith("www.") ? domain.substring(4) : domain;
+        String result = domain.startsWith("www.") ? domain.substring(4) : domain;
+
+        if (domainCache.size() < DOMAIN_CACHE_MAX) {
+            domainCache.put(url, result);
+        }
+        return result;
     }
 
     private final Context context;
@@ -172,6 +209,9 @@ public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter 
         if (!whitelist.contains(clean)) {
             whitelist.add(clean);
         }
+        // Keep downstream caches consistent with the new whitelist entry.
+        domainCache.clear();
+        whitelistVersion.incrementAndGet();
     }
 
     public synchronized void removeDomain(String domain) {
@@ -182,6 +222,7 @@ public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter 
         action.deleteDomain(clean, RecordUnit.TABLE_WHITELIST);
         action.close();
         whitelist.remove(clean);
+        whitelistVersion.incrementAndGet();
     }
 
     public synchronized void clearDomains() {
@@ -190,5 +231,6 @@ public class AdBlock implements com.saigopal.browser.data.repo.WhitelistAdapter 
         action.clearTable(RecordUnit.TABLE_WHITELIST);
         action.close();
         whitelist.clear();
+        whitelistVersion.incrementAndGet();
     }
 }

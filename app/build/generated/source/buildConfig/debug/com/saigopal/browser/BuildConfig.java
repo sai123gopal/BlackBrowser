@@ -7,7 +7,7 @@ public final class BuildConfig {
   public static final boolean DEBUG = Boolean.parseBoolean("true");
   public static final String APPLICATION_ID = "com.saigopal.browser";
   public static final String BUILD_TYPE = "debug";
-  public static final int VERSION_CODE = 30;
+  public static final int VERSION_CODE = 31;
   public static final String VERSION_NAME = "2.0.0";
   // Field from build type: debug
   public static final boolean ADS_ENABLED = true;

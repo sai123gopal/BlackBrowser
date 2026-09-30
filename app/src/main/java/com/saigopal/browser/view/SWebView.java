@@ -257,9 +257,18 @@ public class SWebView extends WebView implements AlbumController {
         }
     }
 
+    /**
+     * PERF: tiered response to system memory pressure. Low levels only drop caches (as before);
+     * RUNNING_LOW and above on a BACKGROUND tab drop cached rendering state too. The active tab
+     * is never touched here (WebViewPool skips it) so the visible page never blinks.
+     */
     public void trimMemory(int level) {
         try {
             clearCache(false);
+            if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
+                    && !foreground) {
+                clearHistory();
+            }
         } catch (Exception ignored) {}
     }
 
@@ -268,6 +277,10 @@ public class SWebView extends WebView implements AlbumController {
         requestFocus();
         foreground = true;
         try {
+            // PERF (API 26+): restore full renderer priority — visible tab renders at full rate.
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+            }
             onResume();
         } catch (Exception ignored) {}
         album.activate();
@@ -278,6 +291,14 @@ public class SWebView extends WebView implements AlbumController {
         clearFocus();
         foreground = false;
         try {
+            // PERF (API 26+): let the OS reclaim/suspend this tab's renderer process — the
+            // WebView is already onPause()'d, so audio/video behavior is unchanged; WAIVED only
+            // marks the renderer killable when not visible instead of the whole app being
+            // killed under memory pressure. (Constants live on WebView itself — verified against
+            // android-35: WAIVED=0, BOUND=1, IMPORTANT=2; there is no QUEUED constant.)
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_WAIVED, false);
+            }
             onPause();
         } catch (Exception ignored) {}
         album.deactivate();

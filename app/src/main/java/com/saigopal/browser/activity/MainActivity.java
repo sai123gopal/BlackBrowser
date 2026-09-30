@@ -239,7 +239,11 @@ public class MainActivity extends AppCompatActivity implements BrowserController
         // P05 shell flip: the Compose shell replaces the legacy view path entirely.
         // Legacy chrome stays available for one release cycle via LEGACY_SHELL=true.
         if (!com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
-            HelperUnit.applyTheme(context);
+            // SPLASH: the Compose shell is a dark brand surface (SplashScreen renders over an
+            // obsidian canvas). Setting the splash host theme here — instead of the pref-driven
+            // legacy theme — makes the very first frame dark in every app theme, killing the
+            // light flash on cold start. Compose repaints window insets/bar colors itself.
+            setTheme(R.style.AppTheme_splash);
             com.saigopal.browser.ui.shell.ComposeShellHost.INSTANCE.install(this);
             // P08 8.4: UMP consent before any ad request; SDK caches the outcome.
             com.saigopal.browser.ui.ads.AdsController.INSTANCE.maybeShowConsent(this);

@@ -27,4 +27,18 @@
         <item name="android:colorBackground">@android:color/black</item>
     </style>
 
+    <!--
+      Splash host theme: obsidian window background so the very first frame is already dark
+      (no light flash before Compose attaches), matching SplashScreen's #090D0F canvas.
+      applyTheme never selects this; MainActivity's Compose-shell path uses it directly.
+    -->
+    <style name="AppTheme_splash" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:colorBackground">@color/splash_background</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
 </resources>

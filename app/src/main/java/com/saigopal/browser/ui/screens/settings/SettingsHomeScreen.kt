@@ -68,6 +68,7 @@ import com.saigopal.browser.ui.design.components.TopSneakbarHost
 import com.saigopal.browser.ui.design.components.rememberTopSneakbarState
 import com.saigopal.browser.ui.design.theme.BBSpace
 import com.saigopal.browser.ui.di.rememberContainer
+import com.saigopal.browser.ui.screens.settings.LocalSettingsScaffoldScroll
 
 /*
  * Modern Jetpack Compose Settings — Card-grouped Material 3 design with vibrant icon badges,
@@ -106,7 +107,9 @@ fun SettingsHomeScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                // FIX: consume the hoisted home ScrollState (provided by SettingsDestination) so
+                // scroll position survives home → sub-route → back instead of resetting to top.
+                .verticalScroll(LocalSettingsScaffoldScroll.current),
         ) {
             // Modern Top Bar
             Row(

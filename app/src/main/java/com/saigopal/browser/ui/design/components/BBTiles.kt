@@ -28,8 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.saigopal.browser.ui.design.theme.BBSpace
 import kotlin.math.absoluteValue
 
@@ -119,23 +120,31 @@ fun BBFavicon(
         modifier = modifier.size(size),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (faviconUrl != null) {
-                SubcomposeAsyncImage(
-                    model = faviconUrl,
+        if (faviconUrl != null) {
+            // PERF: AsyncImage inside a plain Box with the LetterTile drawn underneath —
+            // pixel-identical to the previous SubcomposeAsyncImage (letter shows while loading
+            // and on error; the loaded bitmap covers it) without a subcomposition per cell,
+            // which visibly janks scrolling history/tab lists on low-end devices.
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                LetterTile(label, cleanUrl, size, shape = shape)
+                val context = LocalContext.current
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(faviconUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = label,
                     modifier = Modifier.size(size * 0.65f),
-                    loading = {
-                        LetterTile(label, cleanUrl, size, shape = shape)
-                    },
-                    error = {
-                        LetterTile(label, cleanUrl, size, shape = shape)
-                    },
                 )
-            } else {
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
                 LetterTile(label, cleanUrl, size, shape = shape)
             }
         }

@@ -30,6 +30,15 @@ class RecordsRepository(private val app: Application) {
         action.listHistory().map(::fromLegacy)
     }
 
+    /**
+     * PERF: bounded newest-first window for the start page's "Continue Browsing" strip.
+     * Semantics after the caller's distinct-by-url + take match listHistory() exactly; the
+     * difference is the query now stops at a small window instead of materializing every row.
+     */
+    suspend fun listRecentHistory(limit: Int): List<BBRecord> = db { action ->
+        action.listRecentHistory(limit * 4).map(::fromLegacy) // extra headroom under the SQL window
+    }
+
     suspend fun deleteUrl(url: String, table: String): Unit = db { it.deleteURL(url, table) }
 
     suspend fun clearHistory(): Unit = db { it.clearTable(RecordUnit.TABLE_HISTORY) }

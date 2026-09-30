@@ -60,7 +60,17 @@ object ComposeShellHost {
                 dynamicColor = settings.dynamicColor,
                 reducedMotion = false,
             ) {
-                AppNavHost()
+                // FIX: the app root previously composed content directly on the window, so M3's
+                // LocalContentColor kept its library default (BLACK). Text/Icon calls that rely
+                // on the ambient content color — most visibly the SettingsScaffold titles and
+                // other inner-screen headers — rendered black-on-black in DARK/AMOLED themes.
+                // A themed Surface provides contentColorFor(background) = onBackground for the
+                // whole tree, and every screen that paints its own background simply covers it.
+                androidx.compose.material3.Surface(
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.background,
+                ) {
+                    AppNavHost()
+                }
             }
         }
     }

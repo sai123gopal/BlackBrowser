@@ -25,10 +25,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +46,7 @@ import com.saigopal.browser.R
 import com.saigopal.browser.domain.BBRecord
 import com.saigopal.browser.domain.BookmarkSort
 import com.saigopal.browser.ui.design.components.BBConfirmSheet
+import com.saigopal.browser.ui.design.components.BBFormSheet
 import com.saigopal.browser.ui.design.components.BBTextFieldPill
 import com.saigopal.browser.ui.design.components.ColorDotPicker
 import com.saigopal.browser.ui.design.components.EmptyState
@@ -268,7 +268,8 @@ private fun dotColor(code: Int): Color =
         MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
     }
 
-/** Legacy edit-bookmark semantics: new title + colour (TIME-column encoding lives in the repo). */
+/** Legacy edit-bookmark semantics: new title + colour (TIME-column encoding lives in the repo).
+ * UI migrated from AlertDialog to the standard form bottom sheet (app design language). */
 @Composable
 private fun BookmarkEditDialog(
     initialTitle: String,
@@ -278,27 +279,25 @@ private fun BookmarkEditDialog(
     var title by remember { mutableStateOf(initialTitle) }
     var colorCode by remember { mutableStateOf(1) } // GREY default so saves always carry a colour
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.menu_edit)) },
-        text = {
-            Column {
-                BBTextFieldPill(
-                    value = title,
-                    onValueChange = { title = it },
-                    hint = stringResource(R.string.album_title_bookmarks),
-                )
-                Spacer(Modifier.height(BBSpace.sm))
-                ColorDotPicker(selectedCode = colorCode, onSelect = { colorCode = it })
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(title.trim(), colorCode) }) {
-                Text(stringResource(android.R.string.ok))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-        },
-    )
+    BBFormSheet(
+        title = stringResource(R.string.menu_edit),
+        icon = Icons.Filled.Edit,
+        onDismiss = onDismiss,
+        confirmEnabled = title.isNotBlank(),
+        onConfirm = { onSave(title.trim(), colorCode) },
+    ) {
+        BBTextFieldPill(
+            value = title,
+            onValueChange = { title = it },
+            hint = stringResource(R.string.album_title_bookmarks),
+        )
+        Spacer(Modifier.height(BBSpace.sm))
+        Text(
+            text = stringResource(R.string.setting_filter),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(BBSpace.xxs))
+        ColorDotPicker(selectedCode = colorCode, onSelect = { colorCode = it })
+    }
 }
