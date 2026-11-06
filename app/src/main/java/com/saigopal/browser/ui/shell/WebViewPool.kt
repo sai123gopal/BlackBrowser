@@ -36,8 +36,8 @@ class WebViewPool(
 
     fun get(tabId: Long?): SWebView? = tabId?.let { webViews[it] }
 
-    fun getOrCreate(tabId: Long): SWebView = webViews.getOrPut(tabId) {
-        SWebView(context).apply { setBrowserController(controller) }
+    fun getOrCreate(tabId: Long, incognito: Boolean = false): SWebView = webViews.getOrPut(tabId) {
+        SWebView(context, incognito).apply { setBrowserController(controller) }
     }.also {
         // Re-insert at the MRU end: a just-reused (rehydrated) tab must not be the next victim.
         if (poolCap > 0) {
@@ -82,6 +82,13 @@ class WebViewPool(
         if (activeTabId == tabId) activeTabId = null
     }
 
+    fun onRendererGone(view: SWebView) {
+        val tabId = webViews.entries.firstOrNull { it.value === view }?.key ?: return
+        webViews.remove(tabId)
+        view.destroy()
+        if (activeTabId == tabId) activeTabId = null
+    }
+
     fun destroyAll() {
         webViews.values.forEach { it.destroy() }
         webViews.clear()
@@ -109,17 +116,16 @@ class WebViewPool(
 
     private companion object {
         /**
-         * Cap sizing: memory-class driven with a low-RAM floor. Modern 8GB+ flagships report
-         * memoryClass ≥ 256 → no cap (original uncapped behavior preserved exactly). Mid devices
-         * 128-255 → 6 engines. lowRamDevice (Android Go / 2GB class) → 3 engines.
+         * Cap sizing: memory-class driven with a low-RAM floor. High-memory devices keep at most
+         * eight renderers; mid devices keep six and low-RAM devices keep three.
          */
         fun computePoolCap(context: Context): Int {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
-                ?: return 0
+                ?: return 3
             val memoryClass = am.memoryClass
             return when {
                 am.isLowRamDevice -> 3
-                memoryClass >= 256 -> 0 // uncapped — identical to pre-optimization behavior
+                memoryClass >= 256 -> 8
                 memoryClass >= 128 -> 6
                 else -> 3
             }

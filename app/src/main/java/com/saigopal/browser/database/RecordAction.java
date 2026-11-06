@@ -192,6 +192,37 @@ public class RecordAction {
         return list;
     }
 
+    public List<Record> listHistory(int limit, int offset) {
+        List<Record> list = new ArrayList<>();
+        if (limit <= 0 || offset < 0) {
+            return list;
+        }
+        Cursor cursor = database.query(
+                RecordUnit.TABLE_HISTORY,
+                new String[] {
+                        RecordUnit.COLUMN_TITLE,
+                        RecordUnit.COLUMN_URL,
+                        RecordUnit.COLUMN_TIME
+                },
+                null,
+                null,
+                null,
+                null,
+                RecordUnit.COLUMN_TIME + " desc",
+                limit + " OFFSET " + offset
+        );
+        try {
+            while (cursor != null && cursor.moveToNext()) {
+                list.add(getRecord(cursor));
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return list;
+    }
+
     /**
      * PERF: newest-first history window. Identical row content to listHistory(), just bounded:
      * the start page needs only the few most recent distinct sites, and the legacy ascending

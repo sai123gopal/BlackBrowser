@@ -647,8 +647,8 @@ private fun PrivacySettingsSlide(
         PrivacyOptionCard(
             icon = Icons.Filled.VisibilityOff,
             title = "Incognito by Default",
-            badge = "ZERO TRACE",
-            description = "Start all new tabs in private mode. No browsing history, cookie traces, or local web cache will be stored on disk.",
+            badge = "NO HISTORY",
+            description = "Start new tabs in private mode. Supported WebView versions isolate cookies and site storage; older versions may share site storage.",
             checked = prefs.incognitoByDefault,
             onCheckedChange = { onPrefsChange(prefs.copy(incognitoByDefault = it)) },
         )

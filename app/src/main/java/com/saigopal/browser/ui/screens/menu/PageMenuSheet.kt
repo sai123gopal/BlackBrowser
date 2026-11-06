@@ -500,7 +500,7 @@ private fun IncognitoRow(initialActive: Boolean, onToggled: ((Boolean) -> Unit)?
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "Private mode for this tab. History, cookies, and cache won't be saved from here on.",
+                "History is not recorded. Supported WebView versions isolate cookies and site storage; older versions may share site storage.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

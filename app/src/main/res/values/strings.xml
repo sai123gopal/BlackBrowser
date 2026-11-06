@@ -398,7 +398,7 @@ Black browser comes with 4 different options of theme System, Light, Dark and Am
     <string name="bb_geo_title">Location access</string>
     <string name="bb_geo_message">Allow %1$s to use your location?</string>
     <string name="bb_incognito_title">Incognito Mode</string>
-    <string name="bb_incognito_body">In Incognito mode, BlackBrowser will not save your browsing history, cookies, or cache for this tab from this point forward. Activity may still be visible to websites, your network provider, or your organization.</string>
+    <string name="bb_incognito_body">History is not recorded for this tab. Supported WebView versions isolate cookies and site storage; older versions may share site storage. Websites, your network provider, or your organization may still see your activity.</string>
     <string name="bb_menu_desktop_site">Desktop site</string>
     <string name="bb_privacy_reset_permissions">Reset website permissions</string>
     <string name="bb_privacy_reset_permissions_summary">Clears remembered location decisions for all sites; websites will ask again.</string>

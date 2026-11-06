@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,6 +44,8 @@ import com.saigopal.browser.ui.design.theme.BBSpace
 import com.saigopal.browser.ui.di.rememberContainer
 import com.saigopal.browser.unit.RecordUnit
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /*
  * History segment (P04 §4.6): day-grouped list, tap opens in current tab, long-press for
@@ -59,14 +60,18 @@ fun HistorySegment(
 ) {
     val container = rememberContainer()
     val scope = rememberCoroutineScope()
+    var entries by remember { mutableStateOf<List<HistoryEntry>>(emptyList()) }
     var days by remember { mutableStateOf<List<HistoryDay>>(emptyList()) }
     var confirmClear by remember { mutableStateOf(false) }
+    var hasMore by remember { mutableStateOf(true) }
+    var loadingOlder by remember { mutableStateOf(false) }
 
     LaunchedEffect(refreshTick) {
-        val records = container.records.listHistory()
-        days = groupHistoryByDay(
-            entries = records.map { HistoryEntry(it.title, it.url, it.time) },
-        )
+        val records = container.records.listHistoryPage(HISTORY_PAGE_SIZE, 0)
+        val firstPage = records.map { HistoryEntry(it.title, it.url, it.time) }
+        entries = firstPage
+        days = withContext(Dispatchers.Default) { groupHistoryByDay(firstPage) }
+        hasMore = records.size == HISTORY_PAGE_SIZE
     }
 
     LazyColumn(Modifier.fillMaxWidth()) {
@@ -93,7 +98,11 @@ fun HistorySegment(
                 item(key = "day_${day.label}") {
                     SectionHeader(day.label)
                 }
-                itemsIndexed(day.items, key = { index, entry -> "h_${day.label}_${entry.url}_${entry.time}_$index" }) { _, entry ->
+                itemsIndexed(
+                    day.items,
+                    key = { index, entry -> "h_${day.label}_${entry.url}_${entry.time}_$index" },
+                    contentType = { _, _ -> "history_entry" },
+                ) { _, entry ->
                     HistoryRow(
                         entry = entry,
                         onClick = { onLoadUrl(entry.url, false) },
@@ -106,6 +115,40 @@ fun HistorySegment(
                         onOpenNewTab = { onLoadUrl(entry.url, true) },
                     )
                 }
+            }
+        }
+        if (hasMore) {
+            item(key = "history_load_older", contentType = "history_load_older") {
+                Text(
+                    text = if (loadingOlder) "Loading..." else "Load older history",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable {
+                            if (!loadingOlder) {
+                                scope.launch {
+                                    loadingOlder = true
+                                    try {
+                                        val page = container.records.listHistoryPage(
+                                            HISTORY_PAGE_SIZE,
+                                            entries.size,
+                                        )
+                                        val combined = entries + page.map {
+                                            HistoryEntry(it.title, it.url, it.time)
+                                        }
+                                        days = withContext(Dispatchers.Default) {
+                                            groupHistoryByDay(combined)
+                                        }
+                                        entries = combined
+                                        hasMore = page.size == HISTORY_PAGE_SIZE
+                                    } finally {
+                                        loadingOlder = false
+                                    }
+                                }
+                            }
+                        }
+                        .padding(horizontal = BBSpace.md, vertical = BBSpace.md),
+                )
             }
         }
     }
@@ -126,6 +169,8 @@ fun HistorySegment(
         )
     }
 }
+
+private const val HISTORY_PAGE_SIZE = 100
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

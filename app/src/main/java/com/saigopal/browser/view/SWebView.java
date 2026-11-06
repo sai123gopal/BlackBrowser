@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Message;
 
 import androidx.preference.PreferenceManager;
+import androidx.webkit.WebViewCompat;
 
 import android.util.AttributeSet;
 import android.view.*;
@@ -23,9 +24,11 @@ import com.saigopal.browser.browser.SDownloadListener;
 import com.saigopal.browser.browser.SGestureListener;
 import com.saigopal.browser.browser.SWebChromeClient;
 import com.saigopal.browser.browser.SWebViewClient;
+import com.saigopal.browser.browser.BrowserWebProfiles;
 import com.saigopal.browser.browser.Remote;
 import com.saigopal.browser.unit.BrowserUnit;
 import com.saigopal.browser.unit.HelperUnit;
+import com.saigopal.browser.domain.BrowserHistoryCompletionGate;
 
 
 import java.util.HashMap;
@@ -75,6 +78,9 @@ public class SWebView extends WebView implements AlbumController {
     private Remote remoteHosts;
     private SharedPreferences sp;
     private WebSettings webSettings;
+    private final BrowserHistoryCompletionGate historyCompletionGate = new BrowserHistoryCompletionGate();
+    private boolean incognitoProfile;
+    private boolean incognitoRequested;
 
     private boolean foreground;
 
@@ -94,7 +100,17 @@ public class SWebView extends WebView implements AlbumController {
     }
 
     public SWebView(Context context) {
+        this(context, false);
+    }
+
+    public SWebView(Context context, boolean incognito) {
         super(context); // Cannot create a dialog, the WebView context is not an activity
+
+        incognitoRequested = incognito;
+        incognitoProfile = incognito && BrowserWebProfiles.INSTANCE.supportsIncognitoProfiles();
+        if (incognitoProfile) {
+            WebViewCompat.setProfile(this, BrowserWebProfiles.INCOGNITO_PROFILE);
+        }
 
         this.context = context;
         this.foreground = false;
@@ -134,6 +150,9 @@ public class SWebView extends WebView implements AlbumController {
         webSettings.setSupportZoom(true);
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
+        if (incognitoRequested) {
+            webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        }
 
         if (android.os.Build.VERSION.SDK_INT >= 26) {
             webSettings.setSafeBrowsingEnabled(true);
@@ -143,7 +162,16 @@ public class SWebView extends WebView implements AlbumController {
         }
 
         webViewClient.enableAdBlock(sp.getBoolean(context.getString(R.string.sp_ad_block), true));
-        webSettings.setTextZoom(Integer.parseInt(Objects.requireNonNull(sp.getString("sp_fontSize", "100"))));
+        String fontSize = sp.getString("sp_fontSize", "100");
+        int textZoom = 100;
+        if (fontSize != null) {
+            try {
+                textZoom = Integer.parseInt(fontSize);
+            } catch (NumberFormatException ignored) {
+                textZoom = 100;
+            }
+        }
+        webSettings.setTextZoom(Math.max(50, Math.min(200, textZoom)));
         webSettings.setAllowFileAccessFromFileURLs(sp.getBoolean(("sp_remote"), false));
         webSettings.setAllowUniversalAccessFromFileURLs(sp.getBoolean(("sp_remote"), false));
         webSettings.setDomStorageEnabled(sp.getBoolean(("sp_remote"), false));
@@ -193,7 +221,7 @@ public class SWebView extends WebView implements AlbumController {
             webSettings.setJavaScriptCanOpenWindowsAutomatically(false);
             webSettings.setJavaScriptEnabled(false);
         }
-        if (remoteHosts.isWhite(url) || sp.getBoolean("sp_remote", true)) {
+        if (remoteHosts.isWhite(url) || sp.getBoolean("sp_remote", false)) {
             webSettings.setAllowFileAccessFromFileURLs(true);
             webSettings.setAllowUniversalAccessFromFileURLs(true);
             webSettings.setDomStorageEnabled(true);
@@ -312,8 +340,28 @@ public class SWebView extends WebView implements AlbumController {
         if (foreground) {
             browserController.updateProgress(progress);
         }
-        if (isLoadFinish()) {
+        if (isLoadFinish() && historyCompletionGate.completeOnce()) {
             browserController.updateAutoComplete();
+        }
+    }
+
+    public void beginNavigation() {
+        historyCompletionGate.beginNavigation();
+    }
+
+    public boolean usesIncognitoProfile() {
+        return incognitoProfile;
+    }
+
+    public boolean isIncognitoRequested() {
+        return incognitoRequested;
+    }
+
+    public void setAcceptCookies(boolean accept) {
+        if (incognitoProfile) {
+            WebViewCompat.getProfile(this).getCookieManager().setAcceptCookie(accept);
+        } else {
+            android.webkit.CookieManager.getInstance().setAcceptCookie(accept);
         }
     }
 

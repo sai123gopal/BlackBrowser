@@ -34,7 +34,7 @@ fun ColorDotPicker(
         horizontalArrangement = Arrangement.spacedBy(BBSpace.sm),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = BBSpace.md),
     ) {
-        items(BBDotColor.entries.toList()) { dot ->
+        items(BBDotColor.entries.toList(), key = { it.code }, contentType = { "color_dot" }) { dot ->
             val selected = dot.code == selectedCode
             Box(
                 Modifier

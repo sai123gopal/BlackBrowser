@@ -15,6 +15,9 @@ public interface BrowserController {
     void showFileChooser(ValueCallback<Uri[]> filePathCallback);
     void onShowCustomView(View view, WebChromeClient.CustomViewCallback callback);
     void onLongPress(String url);
+    default void onRenderProcessGone(com.saigopal.browser.view.SWebView webView) {
+        webView.destroy();
+    }
     void hideOverview ();
     void onHideCustomView();
 

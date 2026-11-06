@@ -314,19 +314,7 @@ private fun sendFeedback(type: String, feedback: String, email: String?, onDone:
     val df = SimpleDateFormat("dd MM yyyy, HH:mm", Locale.US)
     val time = df.format(Calendar.getInstance().time)
     val ref = FirebaseDatabase.getInstance().getReference().child("Feedback").child(type).push()
-    ref.child("Time").setValue(time)
-    ref.child("Feedback").setValue(feedback)
-        .addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                if (email != null) {
-                    ref.child("Email").setValue(email)
-                        .addOnSuccessListener { onDone(true) }
-                        .addOnFailureListener { onDone(true) }
-                } else {
-                    onDone(true)
-                }
-            } else {
-                onDone(false)
-            }
-        }
+    val values = mutableMapOf<String, Any>("Time" to time, "Feedback" to feedback)
+    email?.let { values["Email"] = it }
+    ref.updateChildren(values).addOnCompleteListener { task -> onDone(task.isSuccessful) }
 }

@@ -61,7 +61,7 @@ data class BBSettings(
     val adBlockEnabled: Boolean = true,
     val javaScriptEnabled: Boolean = true,
     val cookiesEnabled: Boolean = true,
-    val remoteContentEnabled: Boolean = true,
+    val remoteContentEnabled: Boolean = false,
     // Gestures
     val gesturesEnabled: Boolean = true,
     val gestureToolbarUp: GestureAction = GestureAction.OPEN_START_OVERVIEW,   // "08"
@@ -166,7 +166,7 @@ class SettingsRepository(app: Application) {
             adBlockEnabled = s.getBoolean(K.AD_BLOCK_ENABLED, true),
             javaScriptEnabled = s.getBoolean(K.JAVASCRIPT_ENABLED, true),
             cookiesEnabled = s.getBoolean(K.COOKIES_ENABLED, true),
-            remoteContentEnabled = s.getBoolean(K.REMOTE_CONTENT_ENABLED, true),
+            remoteContentEnabled = s.getBoolean(K.REMOTE_CONTENT_ENABLED, false),
             gesturesEnabled = s.getBoolean(K.GESTURES_ENABLED, true),
             gestureToolbarUp = GestureAction.fromCode(s.getString(K.GESTURE_TB_UP, null)),
             gestureToolbarDown = GestureAction.fromCode(s.getString(K.GESTURE_TB_DOWN, null)),

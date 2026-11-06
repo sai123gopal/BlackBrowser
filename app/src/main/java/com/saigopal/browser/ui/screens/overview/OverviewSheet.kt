@@ -151,7 +151,11 @@ fun OverviewSheet(
                     horizontalArrangement = Arrangement.spacedBy(BBSpace.xs),
                     contentPadding = PaddingValues(horizontal = BBSpace.xs),
                 ) {
-                    items(OverviewSegment.entries, key = { it.name }) { chip ->
+                    items(
+                        OverviewSegment.entries,
+                        key = { it.name },
+                        contentType = { "overview_segment" },
+                    ) { chip ->
                         FilterChip(
                             selected = segment == chip,
                             onClick = { segment = chip },

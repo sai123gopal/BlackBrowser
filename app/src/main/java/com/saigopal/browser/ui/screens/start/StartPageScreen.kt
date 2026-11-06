@@ -663,7 +663,7 @@ fun StartPageScreen(
             }
 
             // ---- Pinned Sites Grid Items (5 Columns) ----
-            items(items = tiles, key = { "tile_" + it.url }) { tile ->
+            items(items = tiles, key = { "tile_" + it.url }, contentType = { "start_tile" }) { tile ->
                 BBIconTile(
                     label = tile.title,
                     url = tile.url,

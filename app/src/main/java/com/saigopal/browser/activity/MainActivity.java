@@ -1242,7 +1242,7 @@ public class MainActivity extends AppCompatActivity implements BrowserController
 
         sw_cookie.setChecked(sp.getBoolean(getString(R.string.sp_cookies), true));
 
-        switch_ext.setChecked(sp.getBoolean("sp_remote", true));
+        switch_ext.setChecked(sp.getBoolean("sp_remote", false));
 
         if (javaHosts.isWhite(url)) {
             whiteList_js.setImageResource(R.drawable.check_green);

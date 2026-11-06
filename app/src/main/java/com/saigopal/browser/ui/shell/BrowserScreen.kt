@@ -160,6 +160,13 @@ fun BrowserScreen(
     val settings by container.settings.state.collectAsState()
     val tabs by container.tabs.tabs.collectAsState()
     val activeId by container.tabs.activeId.collectAsState()
+    // The pool lives in BrowserShellStore (keyed to the Activity), NOT in composition: route
+    // switches to settings/games/feedback must not destroy tab WebViews — that was the
+    // "everything reloads" bug. Cleanup happens in applyQuit / MainActivity.onDestroy.
+    val controller = remember { BrowserShellStore.obtain(activity, container) }
+    val pool = controller.pool
+
+    val rendererRecoveryTick = controller.rendererRecoveryTick.intValue
 
     var showTutorial by remember {
         mutableStateOf(container.settings.isOnboardingCompleted() && !container.settings.isTutorialCompleted())
@@ -170,11 +177,6 @@ fun BrowserScreen(
         container.settings.setTutorialCompleted(true)
     }
 
-    // The pool lives in BrowserShellStore (keyed to the Activity), NOT in composition: route
-    // switches to settings/games/feedback must not destroy tab WebViews — that was the
-    // "everything reloads" bug. Cleanup happens in applyQuit / MainActivity.onDestroy.
-    val controller = remember { BrowserShellStore.obtain(activity, container) }
-    val pool = controller.pool
 
     // ---- bootstrap + intent dispatch ---------------------------------------------------------
 
@@ -317,10 +319,10 @@ fun BrowserScreen(
 
     Box(Modifier.fillMaxSize()) {
         if (!activeOnStartPage && activeTab != null) {
-            key(activeTab.id) {
+            key(activeTab.id, rendererRecoveryTick) {
                 AndroidView(
                     factory = {
-                        pool.getOrCreate(activeTab.id).also { v ->
+                        pool.getOrCreate(activeTab.id, activeTab.isIncognito).also { v ->
                             (v.parent as? android.view.ViewGroup)?.removeView(v)
                             pool.activate(activeTab.id)
                             try {

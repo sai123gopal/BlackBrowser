@@ -30,6 +30,10 @@ class RecordsRepository(private val app: Application) {
         action.listHistory().map(::fromLegacy)
     }
 
+    suspend fun listHistoryPage(limit: Int, offset: Int): List<BBRecord> = db { action ->
+        action.listHistory(limit, offset).map(::fromLegacy)
+    }
+
     /**
      * PERF: bounded newest-first window for the start page's "Continue Browsing" strip.
      * Semantics after the caller's distinct-by-url + take match listHistory() exactly; the

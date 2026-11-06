@@ -149,7 +149,11 @@ fun HomeSegment(
                     }
                 }
             }
-            itemsIndexed(pinned, key = { index, tile -> "pinned_${tile.url}_$index" }) { _, tile ->
+            itemsIndexed(
+                pinned,
+                key = { index, tile -> "pinned_${tile.url}_$index" },
+                contentType = { _, _ -> "pinned_tile" },
+            ) { _, tile ->
                 BBIconTile(
                     label = tile.title,
                     url = tile.url,
@@ -192,7 +196,7 @@ fun HomeSegment(
                 modifier = Modifier.padding(top = BBSpace.sm, bottom = BBSpace.xxs),
             )
         }
-        items(quickTiles, key = { "quick_${it.index}" }) { tile ->
+        items(quickTiles, key = { "quick_${it.index}" }, contentType = { "quick_tile" }) { tile ->
             BBIconTile(
                 label = tile.name,
                 url = tile.url,

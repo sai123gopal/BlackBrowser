@@ -2,6 +2,7 @@ package com.saigopal.browser.ui.shell
 
 import androidx.appcompat.app.AppCompatActivity
 import com.saigopal.browser.AppContainer
+import com.saigopal.browser.browser.BrowserWebProfiles
 
 /*
  * BrowserShellStore — keeps the browser's WebView pool alive across in-app route switches.
@@ -25,6 +26,7 @@ object BrowserShellStore {
 
     /** Returns the live controller for [activity], creating (or rebuilding) it when needed. */
     fun obtain(activity: AppCompatActivity, container: AppContainer): ShellController {
+        BrowserWebProfiles.clearStaleProfileOnce()
         holder?.let { existing ->
             if (existing.activity === activity) return existing.controller
             // Configuration change: WebViews bound to the old window must not survive.

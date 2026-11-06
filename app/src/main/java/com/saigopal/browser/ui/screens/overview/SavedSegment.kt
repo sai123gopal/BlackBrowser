@@ -125,7 +125,11 @@ fun SavedSegment(
                     horizontalArrangement = Arrangement.spacedBy(BBSpace.xs),
                     modifier = Modifier.padding(top = BBSpace.xs),
                 ) {
-                    items(BBDotColor.entries.filter { it.code in enabledColors }, key = { it.code }) { dot ->
+                    items(
+                        BBDotColor.entries.filter { it.code in enabledColors },
+                        key = { it.code },
+                        contentType = { "bookmark_filter" },
+                    ) { dot ->
                         val selected = dot.code == filterByCode
                         Box(
                             Modifier
@@ -152,7 +156,11 @@ fun SavedSegment(
                 )
             }
         } else {
-            itemsIndexed(bookmarks, key = { index, record -> "bm_${record.time}_${record.url}_$index" }) { _, record ->
+            itemsIndexed(
+                bookmarks,
+                key = { index, record -> "bm_${record.time}_${record.url}_$index" },
+                contentType = { _, _ -> "bookmark" },
+            ) { _, record ->
                 BookmarkRow(
                     record = record,
                     onClick = { onLoadUrl(record.url, false) },

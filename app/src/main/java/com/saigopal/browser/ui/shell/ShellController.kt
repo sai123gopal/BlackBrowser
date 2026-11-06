@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import com.saigopal.browser.AppContainer
 import com.saigopal.browser.browser.AlbumController
 import com.saigopal.browser.browser.BrowserController
+import com.saigopal.browser.browser.BrowserWebProfiles
 import com.saigopal.browser.domain.ClearFlags
 import com.saigopal.browser.domain.GestureAction
 import com.saigopal.browser.domain.TabState
@@ -70,6 +71,7 @@ class ShellController(
     val pageMenuVisible: MutableState<Boolean> = mutableStateOf(false)
     val quitRequested: MutableState<Boolean> = mutableStateOf(false)
     val fullscreenActive: MutableState<Boolean> = mutableStateOf(false)
+    val rendererRecoveryTick: androidx.compose.runtime.MutableIntState = mutableIntStateOf(0)
 
     // P09 state
     val geoPrompt: MutableState<GeoPromptRequest?> = mutableStateOf(null)
@@ -161,6 +163,17 @@ class ShellController(
 
     override fun onLongPress(url: String?) {
         longPressUrl.value = url
+    }
+
+    override fun onRenderProcessGone(webView: SWebView) {
+        val tabId = pool.idOf(webView) ?: run {
+            webView.destroy()
+            return
+        }
+        val wasActive = tabId == activeTabId()
+        container.tabs.updateMeta(tabId, title = webView.title, url = webView.url)
+        pool.onRendererGone(webView)
+        if (wasActive) rendererRecoveryTick.intValue++
     }
 
     // ---------------------------------------------------------------- P09 geolocation (B2)
@@ -312,7 +325,7 @@ class ShellController(
 
     private fun loadIntoActiveIfReal(url: String) {
         if (com.saigopal.browser.domain.UrlInterpreter.isStartPage(url)) return
-        val wv = pool.getOrCreate(activeTabId() ?: return)
+        val wv = pool.getOrCreate(activeTabId() ?: return, activeTab()?.isIncognito == true)
         applyDesktopMode(wv)
         wv.loadUrl(url)
     }
@@ -337,13 +350,23 @@ class ShellController(
      * Toggles incognito mode on the active tab dynamically.
      * When toggled ON, the active tab continues in incognito mode:
      * - Future browsing leaves no history.
-     * - Cookies are isolated/disabled for this tab.
+        * - A dedicated WebView profile isolates cookies and site storage when supported.
      * - Also updates settings.incognitoActive so subsequent new tabs follow user intent.
      */
     fun toggleActiveTabIncognito(on: Boolean) {
         val id = activeTabId() ?: return
+        val webView = pool.get(id)
+        if (webView != null) {
+            container.tabs.updateMeta(id, title = webView.title, url = webView.url)
+        }
+        val wasIncognito = activeTab()?.isIncognito == true
+        pool.destroy(id)
         container.tabs.setIncognito(id, on)
         container.settings.update { it.copy(incognitoActive = on) }
+        if (wasIncognito && !on && container.tabs.tabs.value.none { it.isIncognito }) {
+            BrowserWebProfiles.deleteIncognitoProfile()
+        }
+        rendererRecoveryTick.intValue++
         applyIncognitoCookiePolicy()
         if (on && !incognitoExplainerSeen()) {
             markIncognitoExplainerSeen()
@@ -352,24 +375,29 @@ class ShellController(
     }
 
     /**
-     * P09 (B4): while an incognito tab is foregrounded the engine accepts no cookies; leaving it
-     * restores the user's cookie preference. Called on every active-tab switch.
+        * Apply cookie acceptance to the active WebView profile. Legacy providers fall back to
+        * disabling cookies in the shared default profile while an incognito tab is active.
      */
     private fun applyIncognitoCookiePolicy() {
         val incognitoForeground = activeTab()?.isIncognito == true
-        val accept = !incognitoForeground && container.settings.state.value.cookiesEnabled
-        android.webkit.CookieManager.getInstance().setAcceptCookie(accept)
+        val cookiesEnabled = container.settings.state.value.cookiesEnabled
+        val webView = activeWebView()
+        if (incognitoForeground && BrowserWebProfiles.supportsIncognitoProfiles()) {
+            android.webkit.CookieManager.getInstance().setAcceptCookie(cookiesEnabled)
+            webView?.takeIf { it.usesIncognitoProfile() }?.setAcceptCookies(cookiesEnabled)
+        } else {
+            android.webkit.CookieManager.getInstance().setAcceptCookie(!incognitoForeground && cookiesEnabled)
+        }
     }
 
     fun closeTab(id: Long) {
         if (fullscreenActive.value) onHideCustomView()
-        val closing = container.tabs.tabs.value.firstOrNull { it.id == id }
-        val lastIncognito =
-            closing?.isIncognito == true &&
-                container.tabs.tabs.value.count { it.isIncognito } == 1
+        val closingIncognito = container.tabs.tabs.value.firstOrNull { it.id == id }?.isIncognito == true
         pool.destroy(id)
         container.tabs.close(id)
-        if (lastIncognito) wipeIncognitoArtifacts()
+        if (closingIncognito && container.tabs.tabs.value.none { it.isIncognito }) {
+            BrowserWebProfiles.deleteIncognitoProfile()
+        }
         if (container.tabs.tabs.value.isEmpty()) {
             // Reopen-last-tab pref collapses to "fresh start page" for now — the session store
             // does not yet remember closed tabs (P10 moves closing into Room).
@@ -378,16 +406,6 @@ class ShellController(
             container.tabs.activeId.value?.let { pool.activate(it) }
             applyIncognitoCookiePolicy()
         }
-    }
-
-    /** Best-effort sweep when the LAST incognito tab closes (9.2). */
-    private fun wipeIncognitoArtifacts() {
-        CookieManager.getInstance().run {
-            removeAllCookies(null)
-            flush()
-        }
-        activeWebView()?.clearCache(true)
-        WebStorage.getInstance().deleteAllData()
     }
 
     fun activateTab(id: Long) {

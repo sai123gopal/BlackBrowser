@@ -28,6 +28,7 @@ import com.saigopal.browser.view.SWebView;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.HttpAuthHandler;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -90,6 +91,7 @@ public class SWebViewClient extends WebViewClient {
     @Override
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
+        sWebView.beginNavigation();
         this.currentPageUrl = (url != null) ? url : "";
         sWebView.setCurrentUrl(this.currentPageUrl);
         try {
@@ -151,6 +153,18 @@ public class SWebViewClient extends WebViewClient {
 
     }
 
+    @TargetApi(Build.VERSION_CODES.O)
+    @Override
+    public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+        BrowserController controller = sWebView.getBrowserController();
+        if (controller != null) {
+            controller.onRenderProcessGone(sWebView);
+        } else {
+            sWebView.destroy();
+        }
+        return true;
+    }
+
     @Override
     public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
         super.doUpdateVisitedHistory(view, url, isReload);
@@ -180,19 +194,24 @@ public class SWebViewClient extends WebViewClient {
         PackageManager packageManager = context.getPackageManager();
         Intent browseIntent = new Intent(Intent.ACTION_VIEW).setData(parsedUri);
 
-        CookieManager manager = CookieManager.getInstance();
-
         if (com.saigopal.browser.BuildConfig.LEGACY_SHELL) {
             SWebView.setDesktopMode(webView, true, currentPageUrl);
-        }
-
-        if (sp.getBoolean("IsIncognito",false)){
-            manager.setAcceptCookie(false);
-        } else if (cookie.isWhite(url) || sp.getBoolean(context.getString(R.string.sp_cookies), true)) {
-            manager.setAcceptCookie(true);
-            manager.getCookie(url);
-        }else {
-            manager.setAcceptCookie(false);
+            CookieManager manager = CookieManager.getInstance();
+            if (sp.getBoolean("IsIncognito", false)) {
+                manager.setAcceptCookie(false);
+            } else if (cookie.isWhite(url) || sp.getBoolean(context.getString(R.string.sp_cookies), true)) {
+                manager.setAcceptCookie(true);
+                manager.getCookie(url);
+            } else {
+                manager.setAcceptCookie(false);
+            }
+        } else {
+            boolean acceptCookies = cookie.isWhite(url)
+                    || sp.getBoolean(context.getString(R.string.sp_cookies), true);
+            if (sWebView.isIncognitoRequested() && !sWebView.usesIncognitoProfile()) {
+                acceptCookies = false;
+            }
+            sWebView.setAcceptCookies(acceptCookies);
         }
 
         if (url.startsWith("http")) {
