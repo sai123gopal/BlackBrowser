@@ -23,17 +23,12 @@
         android:usesCleartextTraffic="true"
         tools:ignore="UnusedAttribute">
 
-        <activity
-            android:exported="false"
-            android:name=".activity.FeedbackActivity">
-        </activity>
-
 
         <activity
             android:name=".activity.MainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:launchMode="singleTask"
-            android:theme="@style/AppTheme"
+            android:theme="@style/Theme.App.Starting"
             android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
             android:exported="true">
 
@@ -71,63 +66,7 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
-        <activity
-            android:exported="false"
-            android:name=".activity.SettingsActivity"
-            android:label="@string/setting_label"
-            android:theme="@style/AppTheme" >
-        </activity>
 
-        <activity
-            android:exported="false"
-            android:name=".activity.WhitelistAdBlock"
-            android:label="@string/setting_title_whitelist"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.WhitelistJavascript"
-            android:label="@string/setting_title_whitelistJS"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.WhitelistCookie"
-            android:label="@string/setting_title_whitelistCookie"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.WhitelistRemote"
-            android:label="@string/setting_title_whitelistRemote"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.SettingsClearActivity"
-            android:label="@string/setting_title_clear_control"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.SettingsStartActivity"
-            android:label="@string/setting_title_start_control"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.SettingsDataActivity"
-            android:label="@string/setting_title_data"
-            android:theme="@style/AppTheme" />
-        <activity android:exported="false"
-
-            android:name=".activity.SettingsUIActivity"
-            android:label="@string/setting_title_ui"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.SettingsGestureActivity"
-            android:label="@string/setting_gestures"
-            android:theme="@style/AppTheme" />
-        <activity
-            android:exported="false"
-            android:name=".activity.SettingsFilterActivity"
-            android:label="@string/setting_filter"
-            android:theme="@style/AppTheme" />
         <!-- P09 (9.7): only ever started internally (MainActivity.onDestroy); no external surface. -->
         <service
             android:exported="false"
@@ -138,7 +77,6 @@
             android:name="android.adservices.AD_SERVICES_CONFIG"
             android:resource="@xml/gma_ad_services_config"
             tools:replace="android:resource" />
-
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

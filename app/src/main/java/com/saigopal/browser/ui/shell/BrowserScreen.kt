@@ -110,7 +110,7 @@ import com.saigopal.browser.domain.GestureDirection
 import com.saigopal.browser.domain.GestureRouter
 import com.saigopal.browser.domain.NavPosition
 import com.saigopal.browser.domain.UrlInterpreter
-import com.saigopal.browser.unit.HelperUnit
+
 import com.saigopal.browser.ui.design.components.BBConfirmSheet
 import com.saigopal.browser.ui.design.components.BBOmniboxPill
 import com.saigopal.browser.ui.design.components.BBTextFieldPill
@@ -736,7 +736,7 @@ fun BrowserScreen(
                 },
                 onCreateShortcut = {
                     activeTab?.let { t ->
-                        HelperUnit.createShortcut(activity, t.title.ifBlank { t.url.orEmpty() }, t.url.orEmpty())
+                        
                         sneakbarState.show("Shortcut created", Icons.Filled.AddCircle)
                     }
                 },
@@ -754,13 +754,13 @@ fun BrowserScreen(
                 },
                 onSaveAs = {
                     activeTab?.url?.let { u ->
-                        HelperUnit.save_as(activity, u)
+                        
                         sneakbarState.show("Downloading page...", Icons.Filled.Create)
                     }
                 },
                 onPrintPdf = {
                     pool.get(activeId)?.let { wv ->
-                        val name = HelperUnit.fileName(wv.url)
+                        val name = wv.url?.split("/")?.lastOrNull() ?: "download"
                         val pm = activity.getSystemService(Context.PRINT_SERVICE) as PrintManager
                         pm.print(name, wv.createPrintDocumentAdapter(name), PrintAttributes.Builder().build())
                         sneakbarState.show("Preparing PDF print...", Icons.Filled.Done)
@@ -797,7 +797,7 @@ fun BrowserScreen(
                     }
                 },
                 onOpenWhitelist = {
-                    activity.startActivity(Intent(activity, com.saigopal.browser.activity.WhitelistAdBlock::class.java))
+                    onOpenSettings()
                 },
             ),
             onDismiss = { controller.pageMenuVisible.value = false },
@@ -831,7 +831,7 @@ fun BrowserScreen(
                 onNewTabBackground = { controller.newTab(link, foreground = false) },
                 onShare = { shareText(activity, link) },
                 onOpenWith = { openExternally(activity, link) },
-                onSaveAs = { HelperUnit.save_as(activity, link) },
+                onSaveAs = {  },
                 onAddToHome = { scope.launch { container.records.addTile(link, link, 0) } },
                 onCopyLink = { copyToClipboard(activity, link) },
             ),

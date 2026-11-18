@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.saigopal.browser.domain.ClearFlags
 import com.saigopal.browser.ui.anim.BBTransitions
 import com.saigopal.browser.ui.screens.games.GamesHubScreen
 import com.saigopal.browser.ui.screens.onboarding.OnboardingScreen
@@ -44,7 +45,6 @@ import com.saigopal.browser.ui.di.rememberContainer
  */
 
 private enum class Route {
-    SPLASH,
     ONBOARDING,
     BROWSER,
     SETTINGS,
@@ -55,9 +55,8 @@ private enum class Route {
 @Composable
 fun AppNavHost() {
     val container = rememberContainer()
-    // SPLASH renders first (dark brand moment); the real launch route resolves beneath it.
     val startRoute = if (!container.settings.isOnboardingCompleted()) Route.ONBOARDING else Route.BROWSER
-    var route by remember { mutableStateOf(Route.SPLASH) }
+    var route by remember { mutableStateOf(startRoute) }
 
     val toBrowser: () -> Unit = { route = Route.BROWSER }
     val openSettings: () -> Unit = { route = Route.SETTINGS }
@@ -65,7 +64,7 @@ fun AppNavHost() {
     val openFeedback: () -> Unit = { route = Route.FEEDBACK }
 
     // Registered before the destinations' own handlers, so their back chains win first.
-    BackHandler(enabled = route != Route.BROWSER && route != Route.ONBOARDING && route != Route.SPLASH) {
+    BackHandler(enabled = route != Route.BROWSER && route != Route.ONBOARDING) {
         toBrowser()
     }
 
@@ -79,11 +78,7 @@ fun AppNavHost() {
         AnimatedContent(
             targetState = route,
             transitionSpec = {
-                if (initialState == Route.SPLASH) {
-                    // Splash → first screen: a quiet cross-fade, no panel motion.
-                    fadeIn(androidx.compose.animation.core.tween(260)) togetherWith
-                        fadeOut(androidx.compose.animation.core.tween(260))
-                } else if (targetState == Route.BROWSER) {
+                if (targetState == Route.BROWSER) {
                     // Returning home: the panel sinks back down toward the browser.
                     BBTransitions.enterModal() togetherWith BBTransitions.exitModalToBrowser()
                 } else {
@@ -114,10 +109,19 @@ fun AppNavHost() {
 
                 Route.FEEDBACK -> FeedbackScreen(onBack = toBrowser)
 
-                Route.ONBOARDING -> Unit
-
-                Route.SPLASH ->
-                    com.saigopal.browser.ui.screens.splash.SplashScreen(onDone = { route = startRoute })
+                Route.ONBOARDING -> OnboardingScreen(
+                    onFinish = { prefs ->
+                        container.settings.update { s ->
+                            s.copy(
+                                adBlockEnabled = prefs.adBlockEnabled,
+                                incognitoActive = prefs.incognitoByDefault,
+                                clearFlags = if (prefs.clearOnExit) ClearFlags(cache = true, history = true, cookies = true, onQuit = true) else s.clearFlags,
+                            )
+                        }
+                        container.settings.setOnboardingCompleted(true)
+                        toBrowser()
+                    },
+                )
             }
         }
     }

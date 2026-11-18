@@ -322,6 +322,12 @@ public class HelperUnit {
      * (relabelled "Darken web pages"): off means websites always keep their original colors.
      */
     public static void initRendering(WebView webView) {
+        if (webView == null) return;
+        Context context = webView.getContext();
+        if (sp == null && context != null) {
+            sp = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
+        }
+        if (sp == null) return;
         String theme = sp.getString("sp_theme", "0");
         boolean darkeningAllowed = !"1".equals(theme) && sp.getBoolean("sp_invert", true);
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {

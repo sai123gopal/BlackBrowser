@@ -41,4 +41,11 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
+    <!-- Native Splash Screen Theme via androidx.core:core-splashscreen -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme_splash</item>
+    </style>
+
 </resources>
